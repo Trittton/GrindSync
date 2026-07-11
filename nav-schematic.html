@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fitness App — Navigation Schematic</title>
+</head>
+<body>
+<style>
+  :root{
+    --bg:#e9edf3; --panel:#ffffff; --panel-2:#f4f6fb; --ink:#131922; --ink-soft:#5a6473;
+    --line:#d2d9e4; --skeleton:#dde3ed; --accent:#1f78e0; --accent-ink:#0b4f97; --accent-soft:#dcebfb;
+    --new:#1f9d63; --new-soft:#dcf2e6; --new-ink:#0d6b40;
+    --warn:#c9861d; --shadow:0 10px 30px rgba(20,40,80,.10);
+    --r-s:#e0654a; --r-a:#e39a3c; --r-b:#3f9bf0; --r-c:#5f93bd; --r-d:#8a93a1; --r-e:#5b6470;
+    --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --font-mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0b0e13; --panel:#141a23; --panel-2:#1b222d; --ink:#e8edf4; --ink-soft:#8a94a5;
+      --line:#28303c; --skeleton:#222a36; --accent:#4db3ff; --accent-ink:#bfe0ff; --accent-soft:#122636;
+      --new:#4ccb8a; --new-soft:#0f2a20; --new-ink:#9fe9c3;
+      --warn:#e0a54a; --shadow:0 10px 30px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#e9edf3; --panel:#ffffff; --panel-2:#f4f6fb; --ink:#131922; --ink-soft:#5a6473;
+    --line:#d2d9e4; --skeleton:#dde3ed; --accent:#1f78e0; --accent-ink:#0b4f97; --accent-soft:#dcebfb;
+    --new:#1f9d63; --new-soft:#dcf2e6; --new-ink:#0d6b40; --warn:#c9861d; --shadow:0 10px 30px rgba(20,40,80,.10);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0e13; --panel:#141a23; --panel-2:#1b222d; --ink:#e8edf4; --ink-soft:#8a94a5;
+    --line:#28303c; --skeleton:#222a36; --accent:#4db3ff; --accent-ink:#bfe0ff; --accent-soft:#122636;
+    --new:#4ccb8a; --new-soft:#0f2a20; --new-ink:#9fe9c3; --warn:#e0a54a; --shadow:0 10px 30px rgba(0,0,0,.45);
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-sans);line-height:1.5;
+    -webkit-font-smoothing:antialiased;padding:32px 20px 56px}
+  .wrap{max-width:1240px;margin:0 auto}
+
+  .head{max-width:760px;margin:0 auto 30px}
+  .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 10px}
+  h1{font-size:clamp(24px,4vw,34px);font-weight:750;letter-spacing:-.02em;text-wrap:balance;margin:0 0 12px}
+  .lede{color:var(--ink-soft);font-size:15px;margin:0}
+  .lede b{color:var(--ink);font-weight:650}
+
+  .legend{display:flex;flex-wrap:wrap;gap:16px;margin:18px 0 0;font-size:12.5px;color:var(--ink-soft)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .dot{width:11px;height:11px;border-radius:3px;flex:none}
+  .dot.b{background:var(--accent)} .dot.g{background:var(--new)}
+
+  .board{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;align-items:flex-start}
+
+  /* device */
+  .phone{width:300px;flex:none;background:var(--panel);border:1px solid var(--line);
+    border-radius:30px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;
+    min-height:648px;position:relative}
+  .notch{height:26px;display:flex;align-items:center;justify-content:center;flex:none}
+  .notch::after{content:"";width:78px;height:6px;border-radius:6px;background:var(--line)}
+  .screen{display:flex;flex-direction:column;flex:1;padding:0 14px 14px}
+  .caption{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-soft);text-align:center;margin:6px 0 12px}
+
+  .appbar{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 12px}
+  .appbar h2{font-size:19px;font-weight:720;letter-spacing:-.01em;margin:0}
+  .appbar .ico{width:26px;height:26px;color:var(--ink-soft)}
+  .back{color:var(--ink-soft);font-size:20px;line-height:1}
+
+  .seg{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:3px;gap:3px}
+  .seg span{font-size:11px;font-weight:600;padding:4px 9px;border-radius:6px;color:var(--ink-soft)}
+  .seg span.on{background:var(--accent);color:#fff}
+
+  .block{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+  .rowline{display:flex;align-items:center;gap:9px;margin:7px 0}
+  .skel{height:9px;border-radius:5px;background:var(--skeleton)}
+  .w25{width:25%}.w35{width:35%}.w45{width:45%}.w55{width:55%}.w65{width:65%}.w80{width:80%}.grow{flex:1}
+  .lbl{font-size:13px;font-weight:600}
+  .sub{font-size:11px;color:var(--ink-soft)}
+  .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+  /* origin tag */
+  .tag{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:9.5px;
+    letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:6px;font-weight:600;margin-top:2px}
+  .tag.b{background:var(--accent-soft);color:var(--accent-ink)}
+  .tag.g{background:var(--new-soft);color:var(--new-ink)}
+  .tag::before{content:"";width:6px;height:6px;border-radius:2px;flex:none}
+  .tag.b::before{background:var(--accent)} .tag.g::before{background:var(--new)}
+
+  /* resume bar */
+  .resume{display:flex;align-items:center;gap:9px;background:var(--accent-soft);border:1px solid var(--accent);
+    border-radius:11px;padding:9px 11px;margin-bottom:10px}
+  .resume .pulse{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none}
+  .resume b{font-size:12px;color:var(--accent-ink)}
+
+  /* set table */
+  .sethead,.setrow{display:grid;grid-template-columns:24px 1fr 1fr 26px;gap:7px;align-items:center}
+  .sethead span{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .setrow{margin-top:7px}
+  .cell{height:26px;border:1px solid var(--line);border-radius:7px;background:var(--panel);
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+  .mark{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--ink-soft);display:flex;
+    align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--ink-soft)}
+  .mark.work{border-color:var(--accent);color:var(--accent)}
+  .check{color:var(--new);font-size:15px;text-align:center}
+  .addset{color:var(--accent);font-size:12px;font-weight:650;margin-top:10px}
+
+  /* nutrition ring */
+  .ringwrap{display:flex;justify-content:center;padding:6px 0 12px}
+  .ring{position:relative;width:132px;height:132px}
+  .ring .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring .val b{font-size:22px;font-weight:750;font-variant-numeric:tabular-nums}
+  .ring .val small{font-size:10px;color:var(--ink-soft);font-family:var(--font-mono);letter-spacing:.08em}
+  .macro{margin:9px 0}
+  .macro .top{display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px}
+  .macro .top b{font-weight:650} .macro .top span{color:var(--ink-soft);font-family:var(--font-mono)}
+  .track{height:7px;border-radius:5px;background:var(--skeleton);overflow:hidden}
+  .fill{height:100%;border-radius:5px;background:var(--accent)}
+  .fill.p{background:#e0654a}.fill.c{background:var(--warn)}.fill.f{background:var(--accent)}
+
+  /* profile */
+  .rankcard{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--accent-soft),transparent);
+    border:1px solid var(--accent);border-radius:14px;padding:12px;margin-bottom:10px}
+  .rankbadge{width:52px;height:52px;border-radius:12px;background:var(--accent);color:#fff;flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;box-shadow:0 4px 14px rgba(31,120,224,.4)}
+  .xp{margin-top:6px}
+  .tier{display:flex;align-items:center;gap:8px;margin:6px 0}
+  .tierbadge{width:24px;height:24px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:800;color:#fff}
+  .t-s{background:#e0654a}.t-a{background:var(--warn)}.t-b{background:var(--accent)}.t-c{background:var(--ink-soft)}
+  .chips{display:flex;gap:5px;flex-wrap:wrap}
+  .chip{font-size:10px;padding:3px 8px;border-radius:20px;background:var(--panel);border:1px solid var(--line);font-weight:600}
+  .stat{margin:8px 0}
+  .stat .top{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;font-weight:600}
+  .stat .top span{color:var(--ink-soft);font-family:var(--font-mono)}
+
+  .spark{display:block;width:100%;height:44px;margin-top:8px}
+
+  /* settings list */
+  .setitem{display:flex;align-items:center;gap:11px;padding:12px 4px;border-bottom:1px solid var(--line)}
+  .setitem:last-child{border-bottom:0}
+  .setitem .ic{width:20px;height:20px;color:var(--ink-soft);flex:none}
+  .setitem .chev{margin-left:auto;color:var(--ink-soft)}
+
+  /* bottom nav */
+  .nav{margin-top:auto;display:flex;justify-content:space-around;border-top:1px solid var(--line);
+    padding:9px 0 4px;background:var(--panel)}
+  .navitem{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink-soft);flex:1}
+  .navitem svg{width:22px;height:22px}
+  .navitem span{font-size:10px;font-weight:600}
+  .navitem.on{color:var(--accent)}
+  .fab{position:absolute;right:20px;bottom:64px;background:var(--accent);color:#fff;border-radius:14px;
+    padding:11px 14px;font-size:12.5px;font-weight:700;box-shadow:0 6px 18px rgba(31,120,224,.45);display:flex;gap:6px;align-items:center}
+
+  .fullnote{margin-top:auto;text-align:center;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-soft);border-top:1px dashed var(--line);padding-top:10px}
+
+  .foot{max-width:760px;margin:34px auto 0;color:var(--ink-soft);font-size:12.5px;text-align:center;
+    border-top:1px solid var(--line);padding-top:16px}
+
+  /* rank map */
+  .mnt{fill:var(--skeleton);stroke:var(--line);stroke-width:1}
+  .rl{font-family:var(--font-mono);font-size:8px;font-weight:700;fill:#fff;text-anchor:middle}
+  .rankmap-legend{display:flex;flex-wrap:wrap;gap:7px 11px;margin:2px 0 8px}
+  .rchip{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:11px;color:var(--ink-soft)}
+  .sw{width:12px;height:12px;border-radius:3px;flex:none}
+  .figrow{display:flex;justify-content:center;gap:16px}
+  .figcol{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .figcol .cap{font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+  .notechip{display:flex;align-items:flex-start;gap:7px;background:var(--panel-2);border:1px dashed var(--line);
+    border-radius:9px;padding:8px 10px;font-size:11px;line-height:1.4;color:var(--ink-soft);margin:10px 0}
+  .notechip b{color:var(--ink);font-weight:650}
+  .mgrp{display:flex;align-items:center;gap:8px;margin:6px 0 2px}
+  .mgrp .tierbadge{width:22px;height:22px}
+
+  /* type picker */
+  .typerow{display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--line)}
+  .typerow:last-child{border-bottom:0}
+  .typerow .lbl{font-size:12.5px}
+  .typerow .check{margin-left:auto}
+  .typerow.on{background:var(--accent-soft);border-radius:9px;border-bottom-color:transparent}
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <p class="eyebrow">Navigation Schematic · Wireframe</p>
+    <h1>Three tabs replace RepCount's tabs + drawer</h1>
+    <p class="lede">Low-fidelity screen map for the Android app. Every RepCount surface regroups by <b>domain</b> under <b>Train · Nutrition · Profile</b>; utilities move behind a Settings gear. Tags on each block show where it came from.</p>
+    <div class="legend">
+      <span><i class="dot b"></i> Moved from RepCount</span>
+      <span><i class="dot g"></i> New in your app</span>
+      <span class="mono" style="font-size:11px">Static schematic — no working controls</span>
+    </div>
+  </header>
+
+  <div class="board">
+
+    <!-- 1. TRAIN -->
+    <div class="phone">
+      <div class="notch"></div>
+      <p class="caption">1 · Train — history</p>
+      <div class="screen">
+        <div class="appbar">
+          <h2>Train</h2>
+          <div class="seg"><span class="on">History</span><span>Routines</span></div>
+        </div>
+        <span class="tag b">RepCount: Log + Routines tabs</span>
+
+        <div class="resume" style="margin-top:8px">
+          <span class="pulse"></span><b>Workout in progress · Legs</b>
+          <span class="mono sub" style="margin-left:auto">Resume ›</span>
+        </div>
+        <span class="tag b" style="margin-bottom:8px">State kept across tabs</span>
+
+        <div class="block">
+          <div class="rowline"><span class="lbl">THU 9 JUL</span><span class="sub mono" style="margin-left:auto">70 min</span></div>
+          <div class="rowline"><b class="lbl">Legs</b></div>
+          <div class="rowline"><i class="skel w65"></i></div>
+          <div class="rowline"><i class="skel w45"></i></div>
+        </div>
+        <div class="block">
+          <div class="rowline"><span class="lbl">WED 8 JUL</span></div>
+          <div class="rowline"><b class="lbl">Push (Hypertrophy)</b></div>
+          <div class="rowline"><i class="skel w80"></i></div>
+          <div class="rowline"><i class="skel w55"></i></div>
+        </div>
+
+        <div class="fab">＋ Start Workout</div>
+
+        <div class="nav">
+          <div class="navitem on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"/></svg><span>Train</span></div>
+          <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 8c-1.2-3-6-2.6-6 1.2C6 13 9 18 12 18s6-5 6-8.8C18 5.4 13.2 5 12 8z"/><path d="M12 8V5"/></svg><span>Nutrition</span></div>
+          <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 19c.5-3.6 3.4-5.5 6.5-5.5s6 1.9 6.5 5.5"/></svg><span>Profile</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. LIVE WORKOUT -->
+    <div class="phone">
+      <div class="notch"></div>
+      <p class="caption">2 · Live workout (Train ▸ detail)</p>
+      <div class="screen">
+        <div class="appbar">
+          <span class="back">‹</span>
+          <h2 style="font-size:16px">Jul 9 · Legs</h2>
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="7"/><path d="M12 13V9M12 2h0M9 2h6" stroke-linecap="round"/></svg>
+        </div>
+
+        <div class="block" style="padding:10px">
+          <div class="rowline"><span class="sub mono">NAME</span><i class="skel w45"></i><span class="sub mono" style="margin-left:auto">BW 78kg</span></div>
+          <div class="rowline"><span class="sub mono">TIME</span><i class="skel w35"></i></div>
+        </div>
+
+        <div class="block">
+          <div class="rowline"><b class="lbl">Squat</b><span class="sub mono" style="margin-left:auto">•••</span></div>
+          <div class="sethead"><span></span><span>Kg</span><span>Reps</span><span></span></div>
+          <div class="setrow"><span class="mark">W</span><span class="cell">10</span><span class="cell">8</span><span class="check">○</span></div>
+          <div class="setrow"><span class="mark work">1</span><span class="cell">20</span><span class="cell">10</span><span class="check">✓</span></div>
+          <div class="setrow"><span class="mark work">2</span><span class="cell">20</span><span class="cell">10</span><span class="check">✓</span></div>
+          <div class="addset">＋ Add Set</div>
+        </div>
+        <span class="tag b">RepCount: set logging · warmup marks · rest timer</span>
+        <span class="tag g" style="margin-top:6px">Supersets free (no paywall)</span>
+
+        <div class="fullnote">Full-screen flow · tab bar hidden</div>
+      </div>
+    </div>
+
+    <!-- 3. NUTRITION -->
+    <div class="phone">
+      <div class="notch"></div>
+      <p class="caption">3 · Nutrition</p>
+      <div class="screen">
+        <div class="appbar">
+          <h2>Nutrition</h2>
+          <span class="sub mono">Today ▾</span>
+        </div>
+        <span class="tag g">NEW — not in RepCount</span>
+
+        <div class="ringwrap">
+          <div class="ring">
+            <svg viewBox="0 0 120 120" width="132" height="132">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--skeleton)" stroke-width="12"/>
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--accent)" stroke-width="12"
+                stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="65" transform="rotate(-90 60 60)"/>
+            </svg>
+            <div class="val"><b>1,850</b><small>/ 2,300 KCAL</small></div>
+          </div>
+        </div>
+
+        <div class="macro"><div class="top"><b>Protein</b><span>132 / 165 g</span></div><div class="track"><i class="fill p" style="width:80%"></i></div></div>
+        <div class="macro"><div class="top"><b>Carbs</b><span>190 / 240 g</span></div><div class="track"><i class="fill c" style="width:79%"></i></div></div>
+        <div class="macro"><div class="top"><b>Fat</b><span>48 / 70 g</span></div><div class="track"><i class="fill f" style="width:68%"></i></div></div>
+
+        <div class="block" style="margin-top:12px">
+          <div class="rowline"><b class="lbl">Lunch</b><span class="sub mono" style="margin-left:auto">640 kcal</span></div>
+          <div class="rowline"><i class="skel w65"></i></div>
+          <div class="addset">＋ Add food</div>
+        </div>
+
+        <div class="nav">
+          <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"/></svg><span>Train</span></div>
+          <div class="navitem on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 8c-1.2-3-6-2.6-6 1.2C6 13 9 18 12 18s6-5 6-8.8C18 5.4 13.2 5 12 8z"/><path d="M12 8V5"/></svg><span>Nutrition</span></div>
+          <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 19c.5-3.6 3.4-5.5 6.5-5.5s6 1.9 6.5 5.5"/></svg><span>Profile</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. PROFILE -->
+    <div class="phone">
+      <div class="notch"></div>
+      <p class="caption">4 · Profile — overall rank</p>
+      <div class="screen">
+        <div class="appbar">
+          <h2>Profile</h2>
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="var(--panel)"/><circle cx="15" cy="17" r="2" fill="var(--panel)"/></svg>
+        </div>
+        <span class="tag b">Gear → Settings = RepCount drawer</span>
+
+        <div class="rankcard" style="margin-top:8px">
+          <div class="rankbadge">B</div>
+          <div style="flex:1">
+            <div class="lbl">Rank B · Lv 24</div>
+            <div class="xp"><div class="track"><i class="fill" style="width:62%"></i></div></div>
+            <div class="sub mono" style="margin-top:4px">4,820 / 7,000 XP</div>
+          </div>
+        </div>
+        <span class="tag g">NEW — gamified rank & XP</span>
+
+        <div class="block" style="margin-top:10px">
+          <div class="rowline"><b class="lbl">Rank Map</b><span class="sub mono" style="margin-left:auto">Open ›</span></div>
+          <div class="rowline" style="gap:11px;align-items:center;margin-top:6px">
+            <svg viewBox="0 0 40 72" width="34" height="61" fill="none" aria-hidden="true">
+              <circle cx="20" cy="9" r="6" class="mnt"/>
+              <rect x="11" y="17" width="18" height="26" rx="6" class="mnt"/>
+              <rect x="3" y="20" width="7" height="24" rx="3" class="mnt"/>
+              <rect x="30" y="20" width="7" height="24" rx="3" class="mnt"/>
+              <rect x="12" y="44" width="7" height="26" rx="3" class="mnt"/>
+              <rect x="21" y="44" width="7" height="26" rx="3" class="mnt"/>
+              <rect x="13" y="21" width="14" height="8" rx="2" fill="var(--r-a)"/>
+              <rect x="13" y="31" width="14" height="8" rx="2" fill="var(--r-b)"/>
+            </svg>
+            <div class="sub">Muscle-group ranks on a front/back body map — weighted average of your normalized lifts.</div>
+          </div>
+        </div>
+        <span class="tag g">NEW — tap opens the rank map ▸</span>
+
+        <div class="block" style="margin-top:10px">
+          <div class="stat"><div class="top"><span>STR</span><span>82</span></div><div class="track"><i class="fill" style="width:82%"></i></div></div>
+          <div class="stat"><div class="top"><span>END</span><span>64</span></div><div class="track"><i class="fill" style="width:64%"></i></div></div>
+          <div class="stat"><div class="top"><span>CON</span><span>91</span></div><div class="track"><i class="fill" style="width:91%"></i></div></div>
+          <svg class="spark" viewBox="0 0 260 44" preserveAspectRatio="none" fill="none">
+            <path d="M0 34 L40 30 L80 32 L120 22 L160 24 L200 12 L260 6" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round"/>
+            <circle cx="260" cy="6" r="3.5" fill="var(--accent)"/>
+          </svg>
+          <span class="tag b">RepCount: Statistics — free here</span>
+        </div>
+
+        <div class="nav">
+          <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"/></svg><span>Train</span></div>
+          <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 8c-1.2-3-6-2.6-6 1.2C6 13 9 18 12 18s6-5 6-8.8C18 5.4 13.2 5 12 8z"/><path d="M12 8V5"/></svg><span>Nutrition</span></div>
+          <div class="navitem on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 19c.5-3.6 3.4-5.5 6.5-5.5s6 1.9 6.5 5.5"/></svg><span>Profile</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. RANK MAP -->
+    <div class="phone">
+      <div class="notch"></div>
+      <p class="caption">5 · Profile ▸ Rank map (drill-down)</p>
+      <div class="screen">
+        <div class="appbar">
+          <span class="back">‹</span>
+          <h2 style="font-size:17px">Rank Map</h2>
+          <div class="seg"><span class="on">Front</span><span>Back</span></div>
+        </div>
+        <div class="sub" style="margin:-2px 0 8px">Strength rank · weighted avg of your normalized lifts</div>
+
+        <div class="rankmap-legend">
+          <span class="rchip"><i class="sw" style="background:var(--r-s)"></i>S</span>
+          <span class="rchip"><i class="sw" style="background:var(--r-a)"></i>A</span>
+          <span class="rchip"><i class="sw" style="background:var(--r-b)"></i>B</span>
+          <span class="rchip"><i class="sw" style="background:var(--r-c)"></i>C</span>
+          <span class="rchip"><i class="sw" style="background:var(--r-d)"></i>D</span>
+          <span class="rchip"><i class="sw" style="background:var(--r-e)"></i>E</span>
+          <span class="rchip"><i class="sw" style="background:var(--skeleton);border:1px solid var(--line)"></i>Not trained</span>
+        </div>
+
+        <div class="figrow">
+          <div class="figcol">
+            <svg viewBox="0 0 110 190" width="112" height="196" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Front body rank map">
+              <circle cx="55" cy="15" r="11" class="mnt"/>
+              <rect x="38" y="27" width="34" height="60" rx="11" class="mnt"/>
+              <rect x="20" y="33" width="12" height="60" rx="6" class="mnt"/>
+              <rect x="78" y="33" width="12" height="60" rx="6" class="mnt"/>
+              <rect x="40" y="88" width="13" height="94" rx="6" class="mnt"/>
+              <rect x="57" y="88" width="13" height="94" rx="6" class="mnt"/>
+              <g><rect x="15" y="32" width="15" height="11" rx="4" fill="var(--r-a)"/><text x="22.5" y="40.5" class="rl">A</text></g>
+              <g><rect x="47" y="37" width="16" height="12" rx="4" fill="var(--r-a)"/><text x="55" y="46" class="rl">A</text></g>
+              <g><rect x="15" y="58" width="14" height="11" rx="4" fill="var(--r-b)"/><text x="22" y="66.5" class="rl">B</text></g>
+              <g><rect x="47" y="59" width="16" height="12" rx="4" fill="var(--r-b)"/><text x="55" y="68" class="rl">B</text></g>
+              <g><rect x="39" y="110" width="15" height="12" rx="4" fill="var(--r-b)"/><text x="46.5" y="119" class="rl">B</text></g>
+              <g><rect x="39" y="148" width="15" height="11" rx="4" fill="var(--r-e)"/><text x="46.5" y="156.5" class="rl">E</text></g>
+            </svg>
+            <span class="cap">Front</span>
+          </div>
+          <div class="figcol">
+            <svg viewBox="0 0 110 190" width="112" height="196" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Back body rank map">
+              <circle cx="55" cy="15" r="11" class="mnt"/>
+              <rect x="38" y="27" width="34" height="60" rx="11" class="mnt"/>
+              <rect x="20" y="33" width="12" height="60" rx="6" class="mnt"/>
+              <rect x="78" y="33" width="12" height="60" rx="6" class="mnt"/>
+              <rect x="40" y="88" width="13" height="94" rx="6" class="mnt"/>
+              <rect x="57" y="88" width="13" height="94" rx="6" class="mnt"/>
+              <g><rect x="47" y="29" width="16" height="11" rx="4" fill="var(--r-b)"/><text x="55" y="37.5" class="rl">B</text></g>
+              <g><rect x="15" y="33" width="15" height="10" rx="4" fill="var(--r-d)"/><text x="22.5" y="41" class="rl">D</text></g>
+              <g><rect x="46" y="47" width="18" height="12" rx="4" fill="var(--r-a)"/><text x="55" y="56" class="rl">A</text></g>
+              <g><rect x="15" y="58" width="14" height="11" rx="4" fill="var(--r-b)"/><text x="22" y="66.5" class="rl">B</text></g>
+              <g><rect x="47" y="69" width="16" height="11" rx="4" fill="var(--skeleton)" stroke="var(--line)"/><text x="55" y="77.5" class="rl" style="fill:var(--ink-soft)">–</text></g>
+              <g><rect x="45" y="90" width="18" height="12" rx="4" fill="var(--r-c)"/><text x="54" y="99" class="rl">C</text></g>
+              <g><rect x="39" y="116" width="15" height="12" rx="4" fill="var(--r-c)"/><text x="46.5" y="125" class="rl">C</text></g>
+              <g><rect x="39" y="148" width="15" height="11" rx="4" fill="var(--r-e)"/><text x="46.5" y="156.5" class="rl">E</text></g>
+            </svg>
+            <span class="cap">Back</span>
+          </div>
+        </div>
+
+        <div class="notechip"><span style="color:var(--accent)">◐</span><span><b>Future idea:</b> a second map mode for <b>recovery / soreness</b> (Fitbod-style) — a separate lens, not the same as strength rank.</span></div>
+
+        <div class="mgrp"><span class="tierbadge t-a">A</span><b class="lbl">Chest</b><span class="sub mono" style="margin-left:auto">tap region ▾</span></div>
+        <div class="block" style="margin-top:2px">
+          <div class="stat"><div class="top"><span>Bench Press</span><span>A · ×1.0</span></div><div class="track"><i class="fill" style="width:84%"></i></div></div>
+          <div class="stat"><div class="top"><span>Incline DB Press</span><span>B · ×1.0</span></div><div class="track"><i class="fill" style="width:66%"></i></div></div>
+          <div class="stat"><div class="top"><span>Cable Crossover</span><span>C · ×1.0</span></div><div class="track"><i class="fill" style="width:52%"></i></div></div>
+          <div class="stat"><div class="top" style="color:var(--ink-soft)"><span>Dips (secondary)</span><span>B · ×0.4</span></div><div class="track"><i class="fill" style="width:60%;opacity:.55"></i></div></div>
+        </div>
+        <span class="tag g">NEW — per-exercise breakdown · weights show primary ×1.0 vs secondary ×0.4</span>
+
+        <div class="fullnote">Pushed from Profile · tab bar hidden</div>
+      </div>
+    </div>
+
+    <!-- 6. SETTINGS -->
+    <div class="phone">
+      <div class="notch"></div>
+      <p class="caption">6 · Settings (gear ▸ = old drawer)</p>
+      <div class="screen">
+        <div class="appbar">
+          <span class="back">‹</span>
+          <h2 style="font-size:17px">Settings</h2>
+          <span style="width:26px"></span>
+        </div>
+
+        <div style="margin-top:4px">
+          <div class="setitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M8 6v12"/></svg><div><div class="lbl">Exercise Library</div><span class="tag b">RepCount: Edit Exercises</span></div><span class="chev">›</span></div>
+          <div class="setitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h7v5H4zM13 6h7v5h-7zM4 13h7v5H4zM13 13h7v5h-7z"/></svg><div><div class="lbl">Categories</div><span class="tag b">RepCount: Edit Categories</span></div><span class="chev">›</span></div>
+          <div class="setitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3"/><path d="M6 19c.5-3 3-4.5 6-4.5s5.5 1.5 6 4.5"/></svg><div><div class="lbl">Account</div><span class="tag b">RepCount: Account</span></div><span class="chev">›</span></div>
+          <div class="setitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v12M8 11l4 4 4-4M5 20h14"/></svg><div><div class="lbl">Export / Import</div><span class="tag g">NEW — free (RepCount paywalls CSV)</span></div><span class="chev">›</span></div>
+          <div class="setitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke-linecap="round"/></svg><div><div class="lbl">Appearance</div><span class="sub">Light / Dark theme</span></div><span class="chev">›</span></div>
+          <div class="setitem"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 113.5 2.3c-.8.4-1 .8-1 1.7M12 17h0"/></svg><div><div class="lbl">Help & Feedback</div><span class="tag b">RepCount: Help / Feedback</span></div><span class="chev">›</span></div>
+        </div>
+
+        <div class="fullnote">Modal sheet · tab bar hidden</div>
+      </div>
+    </div>
+
+    <!-- 7. ROUTINE EDITOR -->
+    <div class="phone">
+      <div class="notch"></div>
+      <p class="caption">7 · Train ▸ routine editor</p>
+      <div class="screen">
+        <div class="appbar">
+          <span class="back">‹</span>
+          <h2 style="font-size:17px">Edit Routine</h2>
+          <span style="color:var(--accent);font-weight:750;font-size:13px;letter-spacing:.04em">START</span>
+        </div>
+
+        <div class="block" style="padding:10px"><div class="rowline"><span class="sub mono">NAME</span><i class="skel w45"></i><span class="sub mono" style="margin-left:auto">w1d1</span></div></div>
+        <div class="block" style="padding:10px"><div class="rowline"><span class="sub mono">TARGETS</span><b class="lbl" style="margin-left:auto">Latest ▾</b></div></div>
+        <span class="tag b">RepCount: Targets = Latest (prefill from last)</span>
+        <div class="block" style="padding:10px;margin-top:8px"><div class="rowline"><span class="sub mono">NOTES</span><i class="skel w65"></i></div></div>
+
+        <div class="rowline" style="margin:10px 0 4px"><span class="sub mono" style="letter-spacing:.12em">EXERCISES</span></div>
+        <div class="block">
+          <div class="rowline"><b class="lbl">Incline Bench Press</b><span class="sub mono" style="margin-left:auto">•••</span></div>
+          <div class="sub">3 Sets · 6–12 reps</div>
+        </div>
+        <div class="block">
+          <div class="rowline"><b class="lbl">Cable Crossovers</b><span class="sub mono" style="margin-left:auto">•••</span></div>
+          <div class="sub">3 Sets · 8–12 reps</div>
+        </div>
+        <span class="tag b">RepCount: target sets + rep range (no fixed weight)</span>
+        <div class="addset">＋ Add Exercise</div>
+
+        <div class="fullnote">Train ▸ routine · START spins up a live workout</div>
+      </div>
+    </div>
+
+    <!-- 8. EXERCISE-TYPE PICKER -->
+    <div class="phone">
+      <div class="notch"></div>
+      <p class="caption">8 · Settings ▸ exercise-type picker</p>
+      <div class="screen">
+        <div class="appbar">
+          <span class="back">‹</span>
+          <h2 style="font-size:17px">Exercise Type</h2>
+          <span style="width:26px"></span>
+        </div>
+        <div class="sub" style="margin:-2px 0 8px">Sets which fields a set stores → the polymorphic set model</div>
+
+        <div class="block" style="padding:4px 8px">
+          <div class="typerow on"><div><div class="lbl">Strength: Weight, Reps</div><span class="sub">Bench Press, DB Row</span></div><span class="check">✓</span></div>
+          <div class="typerow"><div><div class="lbl">Strength: Weight, Time</div><span class="sub">Weighted static holds</span></div></div>
+          <div class="typerow"><div><div class="lbl">Strength: Weight, Distance</div><span class="sub">Farmer's walk, Sled push</span></div></div>
+          <div class="typerow"><div><div class="lbl">Strength: Weight, Distance, Time</div><span class="sub">Weighted carry for time</span></div></div>
+          <div class="typerow"><div><div class="lbl">Bodyweight: Weight, Reps</div><span class="sub">Dips, Pull-up, Chin-up</span></div></div>
+          <div class="typerow"><div><div class="lbl">Bodyweight: Reps</div><span class="sub">Push-ups, BW squat</span></div></div>
+          <div class="typerow"><div><div class="lbl">Bodyweight: Time</div><span class="sub">Plank, Wall sit</span></div></div>
+          <div class="typerow"><div><div class="lbl">Assisted bodyweight: Weight, Reps</div><span class="sub">Assisted dips / chin-up</span></div></div>
+          <div class="typerow"><div><div class="lbl">Cardio: Time, Distance, Kcal</div><span class="sub">Running, Stationary bike</span></div></div>
+          <div class="typerow"><div><div class="lbl">Other: Notes</div><span class="sub">Notes only</span></div></div>
+        </div>
+        <span class="tag b">RepCount: 10 tracking modes → drives §5 polymorphic SetEntry</span>
+
+        <div class="fullnote">Settings ▸ Exercise Library ▸ editor ▸ this picker</div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="foot">Schematic for placement discussion only — spacing, copy, and hierarchy are indicative, not final. Structure mirrors the live RepCount study (2026-07-11) mapped onto the 3-tab model.</p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose owns all real theming; this only styles the window before setContent. -->
+    <style name="Theme.GrindSync" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0B0E13</item>
+        <item name="android:statusBarColor">#0B0E13</item>
+    </style>
+</resources>
