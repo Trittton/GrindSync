@@ -14,7 +14,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -55,6 +60,8 @@ import dev.gatsyuk.grindsync.core.model.WeightUnit
 import dev.gatsyuk.grindsync.core.model.Weights
 import dev.gatsyuk.grindsync.core.model.formatDurationMillis
 import dev.gatsyuk.grindsync.core.model.formatSeconds
+import dev.gatsyuk.grindsync.core.ui.ActionBottomSheet
+import dev.gatsyuk.grindsync.core.ui.SheetAction
 import dev.gatsyuk.grindsync.core.ui.exerciseTypeLabel
 import dev.gatsyuk.grindsync.feature.workout.components.ExercisePickerSheet
 import java.time.format.DateTimeFormatter
@@ -69,6 +76,7 @@ import java.util.Locale
 @Composable
 fun LiveWorkoutScreen(
     onBack: () -> Unit,
+    onOpenWorkout: (Long) -> Unit,
     viewModel: LiveWorkoutViewModel = hiltViewModel(),
 ) {
     val content by viewModel.content.collectAsStateWithLifecycle()
@@ -80,7 +88,9 @@ fun LiveWorkoutScreen(
     var showPicker by remember { mutableStateOf(false) }
     var showRestDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
-    var menuOpen by remember { mutableStateOf(false) }
+    var showWorkoutActions by remember { mutableStateOf(false) }
+    var savedAsRoutine by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val workout = content?.workout
 
@@ -108,14 +118,8 @@ fun LiveWorkoutScreen(
                             Icon(Icons.Default.Timer, contentDescription = "Start rest timer")
                         }
                     }
-                    IconButton(onClick = { menuOpen = true }) {
+                    IconButton(onClick = { showWorkoutActions = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "More")
-                    }
-                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Delete workout") },
-                            onClick = { menuOpen = false; showDeleteConfirm = true },
-                        )
                     }
                 },
             )
@@ -182,6 +186,43 @@ fun LiveWorkoutScreen(
             onStart = { viewModel.startRest(it); showRestDialog = false },
             onStop = { viewModel.stopRest(); showRestDialog = false },
             onDismiss = { showRestDialog = false },
+        )
+    }
+
+    if (showWorkoutActions) {
+        ActionBottomSheet(
+            title = workout?.name,
+            actions = listOf(
+                SheetAction("Share", Icons.Default.Share) {
+                    viewModel.buildShareText()?.let { text ->
+                        val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(android.content.Intent.EXTRA_TEXT, text)
+                        }
+                        context.startActivity(
+                            android.content.Intent.createChooser(send, "Share workout"),
+                        )
+                    }
+                },
+                SheetAction("Repeat Workout", Icons.Default.Replay) {
+                    viewModel.repeatWorkout { newId -> onOpenWorkout(newId) }
+                },
+                SheetAction("Save as Routine", Icons.Default.BookmarkAdd) {
+                    viewModel.saveAsRoutine { savedAsRoutine = true }
+                },
+                SheetAction("Delete workout", Icons.Default.Delete, destructive = true) {
+                    showDeleteConfirm = true
+                },
+            ),
+            onDismiss = { showWorkoutActions = false },
+        )
+    }
+
+    if (savedAsRoutine) {
+        AlertDialog(
+            onDismissRequest = { savedAsRoutine = false },
+            text = { Text("Saved as a routine — find it under Train → Routines.") },
+            confirmButton = { TextButton(onClick = { savedAsRoutine = false }) { Text("OK") } },
         )
     }
 
@@ -303,16 +344,19 @@ private fun ExerciseSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Box {
-                    IconButton(onClick = { sectionMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Exercise options")
-                    }
-                    DropdownMenu(expanded = sectionMenu, onDismissRequest = { sectionMenu = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Remove exercise") },
-                            onClick = { sectionMenu = false; onRemoveExercise() },
-                        )
-                    }
+                IconButton(onClick = { sectionMenu = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Exercise options")
+                }
+                if (sectionMenu) {
+                    ActionBottomSheet(
+                        title = entry.exercise.name,
+                        actions = listOf(
+                            SheetAction("Remove exercise", Icons.Default.Delete, destructive = true) {
+                                onRemoveExercise()
+                            },
+                        ),
+                        onDismiss = { sectionMenu = false },
+                    )
                 }
             }
 
@@ -372,6 +416,7 @@ private fun SetRow(
     var menu by remember { mutableStateOf(false) }
     var notesDialog by remember { mutableStateOf(false) }
 
+    Column(Modifier.fillMaxWidth()) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -419,23 +464,39 @@ private fun SetRow(
             )
         }
 
-        Box {
-            IconButton(onClick = { menu = true }, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = "Set options",
-                    tint = if (set.notes != null) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                DropdownMenuItem(
-                    text = { Text(if (set.notes == null) "Add note" else "Edit note") },
-                    onClick = { menu = false; notesDialog = true },
-                )
-                DropdownMenuItem(text = { Text("Delete set") }, onClick = { menu = false; onDelete() })
-            }
+        IconButton(onClick = { menu = true }, modifier = Modifier.size(32.dp)) {
+            Icon(
+                Icons.Default.MoreVert,
+                contentDescription = "Set options",
+                tint = if (set.notes != null) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
+    }
+
+    // Set note lives right under its row (user feedback).
+    set.notes?.let { note ->
+        Text(
+            note,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 34.dp, bottom = 4.dp),
+        )
+    }
+    }
+
+    if (menu) {
+        ActionBottomSheet(
+            title = "Set ${workingNumber ?: set.setKind.name.lowercase()}",
+            actions = listOf(
+                SheetAction(
+                    if (set.notes == null) "Add note" else "Edit note",
+                    Icons.Default.EditNote,
+                ) { notesDialog = true },
+                SheetAction("Delete set", Icons.Default.Delete, destructive = true) { onDelete() },
+            ),
+            onDismiss = { menu = false },
+        )
     }
 
     if (notesDialog) {

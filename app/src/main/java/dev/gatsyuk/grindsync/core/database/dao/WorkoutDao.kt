@@ -44,16 +44,39 @@ interface WorkoutDao {
     @Query("DELETE FROM workout WHERE id = :id")
     suspend fun deleteWorkoutById(id: Long)
 
-    /** Prunes prefab rows the user never touched (no measurements, no note). */
+    /**
+     * Prunes prefab rows with no measurements at finish — even ones carrying
+     * an inherited note (an unperformed set shouldn't survive). Exception:
+     * OTHER_NOTES-type exercises, whose sets are legitimately notes-only.
+     */
     @Query(
         """
-        DELETE FROM set_entry
-        WHERE workout_exercise_id IN (SELECT id FROM workout_exercise WHERE workout_id = :workoutId)
-          AND weight_kg IS NULL AND reps IS NULL AND time_seconds IS NULL
-          AND distance_meters IS NULL AND kcal IS NULL AND notes IS NULL
+        DELETE FROM set_entry WHERE id IN (
+            SELECT s.id FROM set_entry s
+            JOIN workout_exercise we ON s.workout_exercise_id = we.id
+            JOIN exercise e ON we.exercise_id = e.id
+            WHERE we.workout_id = :workoutId
+              AND s.weight_kg IS NULL AND s.reps IS NULL AND s.time_seconds IS NULL
+              AND s.distance_meters IS NULL AND s.kcal IS NULL
+              AND (e.exercise_type != 'OTHER_NOTES' OR s.notes IS NULL)
+        )
         """,
     )
     suspend fun deleteEmptySets(workoutId: Long)
+
+    @Transaction
+    @Query("SELECT * FROM workout WHERE id = :id")
+    suspend fun getWorkoutWithContent(id: Long): WorkoutWithContent?
+
+    /** Last finished performance of a routine — source of inherited notes. */
+    @Query(
+        """
+        SELECT * FROM workout
+        WHERE source_routine_id = :routineId AND end_time IS NOT NULL
+        ORDER BY date DESC, id DESC LIMIT 1
+        """,
+    )
+    suspend fun getLastCompletedWorkoutOfRoutine(routineId: Long): WorkoutEntity?
 
     // --- reads ---
     @Query("SELECT * FROM workout WHERE id = :id")

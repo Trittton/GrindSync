@@ -164,7 +164,15 @@ fun GrindSyncApp(shellViewModel: ShellViewModel = hiltViewModel()) {
                         LIVE_WORKOUT_ROUTE,
                         arguments = listOf(navArgument("workoutId") { type = NavType.LongType }),
                     ) {
-                        LiveWorkoutScreen(onBack = { navController.popBackStack() })
+                        LiveWorkoutScreen(
+                            onBack = { navController.popBackStack() },
+                            // "Repeat Workout" jumps into the fresh clone.
+                            onOpenWorkout = { newId ->
+                                navController.navigate(liveWorkoutRoute(newId)) {
+                                    popUpTo(HOME_ROUTE)
+                                }
+                            },
+                        )
                     }
                     composable(
                         ROUTINE_EDITOR_ROUTE,

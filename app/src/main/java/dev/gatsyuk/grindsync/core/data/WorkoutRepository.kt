@@ -2,12 +2,15 @@ package dev.gatsyuk.grindsync.core.data
 
 import dev.gatsyuk.grindsync.core.database.dao.RoutineDao
 import dev.gatsyuk.grindsync.core.database.dao.WorkoutDao
+import dev.gatsyuk.grindsync.core.database.entity.RoutineEntity
+import dev.gatsyuk.grindsync.core.database.entity.RoutineExerciseEntity
 import dev.gatsyuk.grindsync.core.database.entity.SetEntryEntity
 import dev.gatsyuk.grindsync.core.database.entity.WorkoutEntity
 import dev.gatsyuk.grindsync.core.database.entity.WorkoutExerciseEntity
 import dev.gatsyuk.grindsync.core.model.ExerciseType
 import dev.gatsyuk.grindsync.core.model.SetKind
 import dev.gatsyuk.grindsync.core.model.SetValidation
+import dev.gatsyuk.grindsync.core.model.TargetMode
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,11 +43,15 @@ class WorkoutRepository @Inject constructor(
         val routine = requireNotNull(routineDao.getRoutineWithExercises(routineId)) {
             "Routine $routineId not found"
         }
+        // Notes inherit from the LAST performance of this routine — a snapshot
+        // at creation time, so later edits to old records never leak forward.
+        val lastRun = workoutDao.getLastCompletedWorkoutOfRoutine(routineId)
         val workoutId = workoutDao.insertWorkout(
             WorkoutEntity(
                 name = routine.routine.name,
                 date = LocalDate.now(),
                 startTimeEpochMillis = System.currentTimeMillis(),
+                notes = lastRun?.notes,
                 sourceRoutineId = routineId,
             ),
         )
@@ -59,6 +66,61 @@ class WorkoutRepository @Inject constructor(
             prefillSets(workoutExerciseId, entry.exerciseId, entry.targetSets)
         }
         return workoutId
+    }
+
+    /** "Repeat Workout": a fresh live session cloning exercises, set values and notes. */
+    suspend fun repeatWorkout(sourceWorkoutId: Long): Long {
+        val source = requireNotNull(workoutDao.getWorkoutWithContent(sourceWorkoutId)) {
+            "Workout $sourceWorkoutId not found"
+        }
+        val newId = workoutDao.insertWorkout(
+            WorkoutEntity(
+                name = source.workout.name,
+                date = LocalDate.now(),
+                startTimeEpochMillis = System.currentTimeMillis(),
+                notes = source.workout.notes,
+                sourceRoutineId = source.workout.sourceRoutineId,
+            ),
+        )
+        source.exercises.sortedBy { it.workoutExercise.position }.forEachIndexed { index, entry ->
+            val weId = workoutDao.insertWorkoutExercise(
+                WorkoutExerciseEntity(workoutId = newId, exerciseId = entry.exercise.id, position = index),
+            )
+            entry.sets.sortedBy { it.position }.forEachIndexed { position, set ->
+                workoutDao.insertSetEntry(
+                    set.copy(id = 0, workoutExerciseId = weId, position = position, isPr = false),
+                )
+            }
+        }
+        return newId
+    }
+
+    /** "Save as Routine": template from a performed session (sets count + rep range). */
+    suspend fun saveAsRoutine(workoutId: Long): Long {
+        val source = requireNotNull(workoutDao.getWorkoutWithContent(workoutId)) {
+            "Workout $workoutId not found"
+        }
+        val routineId = routineDao.insertRoutine(
+            RoutineEntity(
+                name = source.workout.name,
+                targetMode = TargetMode.LATEST,
+                notes = source.workout.notes,
+            ),
+        )
+        routineDao.insertRoutineExercises(
+            source.exercises.sortedBy { it.workoutExercise.position }.mapIndexed { index, entry ->
+                val reps = entry.sets.mapNotNull { it.reps }
+                RoutineExerciseEntity(
+                    routineId = routineId,
+                    exerciseId = entry.exercise.id,
+                    position = index,
+                    targetSets = entry.sets.size.coerceAtLeast(1),
+                    repMin = reps.minOrNull(),
+                    repMax = reps.maxOrNull(),
+                )
+            },
+        )
+        return routineId
     }
 
     /** Adding an exercise mid-workout mirrors its last session (count + values). */
@@ -89,6 +151,8 @@ class WorkoutRepository @Inject constructor(
                     timeSeconds = template?.timeSeconds,
                     distanceMeters = template?.distanceMeters,
                     kcal = template?.kcal,
+                    // Set notes inherit from the same set last session (latest wins).
+                    notes = template?.notes,
                 ),
             )
         }

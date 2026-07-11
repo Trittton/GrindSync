@@ -51,4 +51,10 @@ interface ExerciseDao {
 
     @Query("SELECT * FROM exercise WHERE id = :id")
     suspend fun getById(id: Long): ExerciseEntity?
+
+    @Query("SELECT * FROM muscle_group WHERE name = :name LIMIT 1")
+    suspend fun findGroupByName(name: String): MuscleGroupEntity?
+
+    @Query("SELECT COALESCE(MAX(display_order) + 1, 0) FROM muscle_group")
+    suspend fun nextGroupDisplayOrder(): Int
 }

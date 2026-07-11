@@ -12,8 +12,9 @@ import dev.gatsyuk.grindsync.core.database.entity.WorkoutEntity
 import dev.gatsyuk.grindsync.core.datastore.UserPreferencesRepository
 import dev.gatsyuk.grindsync.core.model.SetKind
 import dev.gatsyuk.grindsync.core.model.SetValidation
-import dev.gatsyuk.grindsync.core.model.ThemeMode
 import dev.gatsyuk.grindsync.core.model.WeightUnit
+import dev.gatsyuk.grindsync.core.model.Weights
+import dev.gatsyuk.grindsync.core.model.formatSeconds
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -78,6 +79,42 @@ class LiveWorkoutViewModel @Inject constructor(
         restTimer.stop()
         repository.deleteWorkout(workoutId)
         onDone()
+    }
+
+    /** "Repeat Workout": fresh live session cloned from this one. */
+    fun repeatWorkout(onCreated: (Long) -> Unit) = viewModelScope.launch {
+        onCreated(repository.repeatWorkout(workoutId))
+    }
+
+    /** "Save as Routine": template from this session's exercises and set counts. */
+    fun saveAsRoutine(onDone: () -> Unit) = viewModelScope.launch {
+        repository.saveAsRoutine(workoutId)
+        onDone()
+    }
+
+    /** Human-readable share text, weights in the display unit. */
+    fun buildShareText(): String? {
+        val current = content.value ?: return null
+        val unit = weightUnit.value
+        val sb = StringBuilder()
+        sb.appendLine("${current.workout.name} — ${current.workout.date}")
+        current.exercises.sortedBy { it.workoutExercise.position }.forEach { entry ->
+            if (entry.sets.isEmpty()) return@forEach
+            val sets = entry.sets.sortedBy { it.position }.joinToString { set ->
+                buildString {
+                    set.weightKg?.let { append(Weights.formatKgAs(it, unit)) }
+                    set.reps?.let { append("×$it") }
+                    set.timeSeconds?.let { append(formatSeconds(it)) }
+                    set.distanceMeters?.let { append("${Weights.format(it)}m") }
+                    set.kcal?.let { append("${it}kcal") }
+                    if (isEmpty()) append("—")
+                }
+            }
+            sb.appendLine("${entry.exercise.name}: $sets")
+        }
+        val totalSets = current.exercises.sumOf { it.sets.size }
+        sb.append("$totalSets sets · logged with GrindSync")
+        return sb.toString()
     }
 
     // --- exercises & sets ---

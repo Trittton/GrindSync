@@ -15,6 +15,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
@@ -48,8 +50,18 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.gatsyuk.grindsync.core.database.dao.ExerciseDao
 import dev.gatsyuk.grindsync.core.database.dao.RoutineDao
+import dev.gatsyuk.grindsync.core.database.entity.ExerciseEntity
+import dev.gatsyuk.grindsync.core.database.entity.ExerciseMuscleEntity
+import dev.gatsyuk.grindsync.core.database.entity.MuscleGroupEntity
 import dev.gatsyuk.grindsync.core.database.entity.RoutineEntity
 import dev.gatsyuk.grindsync.core.database.entity.RoutineExerciseEntity
+import dev.gatsyuk.grindsync.core.export.RoutineShare
+import dev.gatsyuk.grindsync.core.export.SharedMuscle
+import dev.gatsyuk.grindsync.core.export.SharedRoutine
+import dev.gatsyuk.grindsync.core.export.SharedRoutineExercise
+import dev.gatsyuk.grindsync.core.model.ExerciseType
+import dev.gatsyuk.grindsync.core.model.Muscle
+import dev.gatsyuk.grindsync.core.model.MuscleRole
 import dev.gatsyuk.grindsync.core.model.TargetMode
 import dev.gatsyuk.grindsync.feature.workout.components.ExercisePickerSheet
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,13 +84,20 @@ data class EditorEntry(
 class RoutineEditorViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val routineDao: RoutineDao,
-    exerciseDao: ExerciseDao,
+    private val exerciseDao: ExerciseDao,
 ) : ViewModel() {
 
     private val routineId: Long = savedStateHandle["routineId"] ?: -1L
     val isNew get() = routineId < 0
 
-    val exerciseNames: StateFlow<Map<Long, String>> = exerciseDao.observeExercisesWithMuscles()
+    private val catalog = exerciseDao.observeExercisesWithMuscles()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    private val groupNames = exerciseDao.observeMuscleGroups()
+        .map { list -> list.associate { it.id to it.name } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    val exerciseNames: StateFlow<Map<Long, String>> = catalog
         .map { list -> list.associate { it.exercise.id to it.exercise.name } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
@@ -160,6 +179,88 @@ class RoutineEditorViewModel @Inject constructor(
         if (!isNew) routineDao.deleteRoutineById(routineId)
         onDone()
     }
+
+    /** Current editor state as shareable JSON (null until exercises resolve). */
+    fun buildShareJson(): String? {
+        val byId = catalog.value.associateBy { it.exercise.id }
+        val groups = groupNames.value
+        val shared = entries.value.map { entry ->
+            val ex = byId[entry.exerciseId] ?: return null
+            SharedRoutineExercise(
+                name = ex.exercise.name,
+                category = groups[ex.exercise.muscleGroupId] ?: "Other",
+                exerciseType = ex.exercise.exerciseType.name,
+                isUnilateral = ex.exercise.isUnilateral,
+                muscles = ex.muscles.map {
+                    SharedMuscle(it.muscle.name, it.role.name, it.contributionWeight)
+                },
+                targetSets = entry.targetSets,
+                repMin = entry.repMin,
+                repMax = entry.repMax,
+            )
+        }
+        return RoutineShare.toJson(
+            SharedRoutine(
+                name = name.value.ifBlank { "Routine" },
+                notes = notes.value.ifBlank { null },
+                exercises = shared,
+            ),
+        )
+    }
+
+    /**
+     * Import a pasted shared routine: recreate missing exercises (with their
+     * muscle mappings) locally, then populate the editor. Nothing is saved
+     * until the user hits Save.
+     */
+    fun importShared(text: String, onResult: (String?) -> Unit) = viewModelScope.launch {
+        try {
+            val shared = RoutineShare.fromJson(text)
+            val newEntries = shared.exercises.map { dto ->
+                val existing = exerciseDao.findByName(dto.name)
+                val exerciseId = existing?.id ?: run {
+                    val group = exerciseDao.findGroupByName(dto.category)
+                        ?: MuscleGroupEntity(
+                            id = exerciseDao.insertMuscleGroups(
+                                listOf(
+                                    MuscleGroupEntity(
+                                        name = dto.category,
+                                        displayOrder = exerciseDao.nextGroupDisplayOrder(),
+                                    ),
+                                ),
+                            ).first(),
+                            name = dto.category,
+                            displayOrder = 0,
+                        )
+                    val id = exerciseDao.insertExercise(
+                        ExerciseEntity(
+                            name = dto.name,
+                            muscleGroupId = group.id,
+                            exerciseType = ExerciseType.valueOf(dto.exerciseType),
+                            isUnilateral = dto.isUnilateral,
+                            isCustom = true,
+                        ),
+                    )
+                    exerciseDao.insertExerciseMuscles(
+                        dto.muscles.map {
+                            ExerciseMuscleEntity(
+                                id, Muscle.valueOf(it.muscle),
+                                MuscleRole.valueOf(it.role), it.contributionWeight,
+                            )
+                        },
+                    )
+                    id
+                }
+                EditorEntry(exerciseId, dto.name, dto.targetSets, dto.repMin, dto.repMax)
+            }
+            if (name.value.isBlank()) name.value = shared.name
+            if (notes.value.isBlank()) notes.value = shared.notes.orEmpty()
+            entries.value = newEntries
+            onResult(null)
+        } catch (e: Exception) {
+            onResult(e.message ?: "Import failed.")
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -173,6 +274,10 @@ fun RoutineEditorScreen(
     val entries by viewModel.entries.collectAsStateWithLifecycle()
     val exerciseNames by viewModel.exerciseNames.collectAsStateWithLifecycle()
     var showPicker by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
+    var importError by remember { mutableStateOf<String?>(null) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
         topBar = {
@@ -184,8 +289,26 @@ fun RoutineEditorScreen(
                     }
                 },
                 actions = {
-                    if (!viewModel.isNew) {
-                        IconButton(onClick = { viewModel.delete(onBack) }) {
+                    if (viewModel.isNew) {
+                        // Import a routine someone shared (pasted JSON).
+                        IconButton(onClick = { showImportDialog = true }) {
+                            Icon(Icons.Default.Download, contentDescription = "Import shared routine")
+                        }
+                    } else {
+                        IconButton(onClick = {
+                            viewModel.buildShareJson()?.let { json ->
+                                val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(android.content.Intent.EXTRA_TEXT, json)
+                                }
+                                context.startActivity(
+                                    android.content.Intent.createChooser(send, "Share routine"),
+                                )
+                            }
+                        }) {
+                            Icon(Icons.Default.Share, contentDescription = "Share routine")
+                        }
+                        IconButton(onClick = { showDeleteConfirm = true }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete routine")
                         }
                     }
@@ -255,6 +378,71 @@ fun RoutineEditorScreen(
             onPick = { id ->
                 showPicker = false
                 viewModel.addExercise(id)
+            },
+        )
+    }
+
+    if (showDeleteConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete routine?") },
+            text = { Text("\"${name.ifBlank { "This routine" }}\" will be removed. Logged workouts are not affected.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirm = false
+                    viewModel.delete(onBack)
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            },
+        )
+    }
+
+    if (showImportDialog) {
+        var pasted by remember { mutableStateOf("") }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showImportDialog = false; importError = null },
+            title = { Text("Import shared routine") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Paste the routine text a friend shared with you. Missing " +
+                            "exercises are created automatically.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedTextField(
+                        value = pasted,
+                        onValueChange = { pasted = it },
+                        placeholder = { Text("{ \"grindsyncRoutine\": 1, … }") },
+                        minLines = 4,
+                        maxLines = 8,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    importError?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = pasted.isNotBlank(),
+                    onClick = {
+                        viewModel.importShared(pasted) { error ->
+                            if (error == null) {
+                                showImportDialog = false
+                                importError = null
+                            } else {
+                                importError = error
+                            }
+                        }
+                    },
+                ) { Text("Import") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showImportDialog = false; importError = null }) { Text("Cancel") }
             },
         )
     }

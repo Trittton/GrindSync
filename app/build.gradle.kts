@@ -17,8 +17,8 @@ android {
         applicationId = "dev.gatsyuk.grindsync"
         minSdk = 29
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.6.0-phase5"
+        versionCode = 9
+        versionName = "0.6.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
