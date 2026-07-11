@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.Module
@@ -27,6 +28,7 @@ class UserPreferencesRepository @Inject constructor(
     private object Keys {
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val REST_TIMER_SECONDS = intPreferencesKey("rest_timer_seconds")
     }
 
     /** Display-only unit; stored data stays kg (SPEC §12.1). */
@@ -39,6 +41,15 @@ class UserPreferencesRepository @Inject constructor(
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map { prefs ->
         prefs[Keys.THEME_MODE]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
             ?: ThemeMode.DARK
+    }
+
+    /** Default rest-timer countdown, seconds. */
+    val restTimerSeconds: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[Keys.REST_TIMER_SECONDS] ?: 120
+    }
+
+    suspend fun setRestTimerSeconds(seconds: Int) {
+        context.dataStore.edit { it[Keys.REST_TIMER_SECONDS] = seconds }
     }
 
     suspend fun setWeightUnit(unit: WeightUnit) {

@@ -27,6 +27,9 @@ interface ExerciseDao {
     suspend fun insertExercises(exercises: List<ExerciseEntity>): List<Long>
 
     @Insert
+    suspend fun insertExercise(exercise: ExerciseEntity): Long
+
+    @Insert
     suspend fun insertExerciseMuscles(mappings: List<ExerciseMuscleEntity>)
 
     @Query("SELECT * FROM muscle_group ORDER BY display_order")

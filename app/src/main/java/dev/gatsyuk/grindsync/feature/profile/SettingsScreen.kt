@@ -29,6 +29,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.gatsyuk.grindsync.core.datastore.UserPreferencesRepository
 import dev.gatsyuk.grindsync.core.model.ThemeMode
 import dev.gatsyuk.grindsync.core.model.WeightUnit
+import dev.gatsyuk.grindsync.core.model.formatSeconds
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -42,9 +43,12 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, WeightUnit.KG)
     val themeMode = prefs.themeMode
         .stateIn(viewModelScope, SharingStarted.Eagerly, ThemeMode.DARK)
+    val restTimerSeconds = prefs.restTimerSeconds
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 120)
 
     fun setWeightUnit(unit: WeightUnit) = viewModelScope.launch { prefs.setWeightUnit(unit) }
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch { prefs.setThemeMode(mode) }
+    fun setRestTimerSeconds(seconds: Int) = viewModelScope.launch { prefs.setRestTimerSeconds(seconds) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +59,7 @@ fun SettingsScreen(
 ) {
     val weightUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val restSeconds by viewModel.restTimerSeconds.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -99,6 +104,20 @@ fun SettingsScreen(
                             onClick = { viewModel.setThemeMode(mode) },
                             shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
                         ) { Text(mode.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                    }
+                }
+            }
+
+            Column {
+                Text("Default rest timer", style = MaterialTheme.typography.titleMedium)
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    val options = listOf(60, 90, 120, 180)
+                    options.forEachIndexed { index, seconds ->
+                        SegmentedButton(
+                            selected = restSeconds == seconds,
+                            onClick = { viewModel.setRestTimerSeconds(seconds) },
+                            shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                        ) { Text(formatSeconds(seconds)) }
                     }
                 }
             }
