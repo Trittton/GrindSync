@@ -17,5 +17,43 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2)
+    /** v2 -> v3: nutrition domain (food_item, diary_entry, nutrition_target). */
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `food_item` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, " +
+                    "`brand` TEXT, `source` TEXT NOT NULL, `barcode` TEXT, " +
+                    "`serving_size` REAL NOT NULL, `serving_unit` TEXT NOT NULL, " +
+                    "`kcal_per_serving` REAL NOT NULL, `protein_g` REAL NOT NULL, " +
+                    "`carbs_g` REAL NOT NULL, `fat_g` REAL NOT NULL, `is_favorite` INTEGER NOT NULL)",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_food_item_name` ON `food_item` (`name`)")
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `diary_entry` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `date` INTEGER NOT NULL, " +
+                    "`meal` TEXT NOT NULL, `food_item_id` INTEGER NOT NULL, " +
+                    "`quantity_servings` REAL NOT NULL, " +
+                    "FOREIGN KEY(`food_item_id`) REFERENCES `food_item`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE RESTRICT )",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_diary_entry_date` ON `diary_entry` (`date`)")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_diary_entry_food_item_id` ON `diary_entry` (`food_item_id`)",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `nutrition_target` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`effective_date` INTEGER NOT NULL, `kcal_target` INTEGER NOT NULL, " +
+                    "`protein_target_g` INTEGER NOT NULL, `carbs_target_g` INTEGER NOT NULL, " +
+                    "`fat_target_g` INTEGER NOT NULL)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_nutrition_target_effective_date` " +
+                    "ON `nutrition_target` (`effective_date`)",
+            )
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 }

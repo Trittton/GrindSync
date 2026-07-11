@@ -16,6 +16,11 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 /** Needed only for strength normalization (IPF GL / standards). */
 enum class Sex { UNSET, MALE, FEMALE }
 
+enum class Meal { BREAKFAST, LUNCH, DINNER, SNACK }
+
+/** Where a food's macro data came from. OFF = Open Food Facts (cached copy). */
+enum class FoodSource { CUSTOM, OFF }
+
 /**
  * Rank ladder, worst to best: 8 letter families × (−, neutral, +) = 24 tiers.
  * Calibration: score ≈ IPF GL points scale — 100 ≈ world-class (SS+),

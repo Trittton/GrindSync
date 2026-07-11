@@ -2,6 +2,8 @@ package dev.gatsyuk.grindsync.core.database
 
 import androidx.room.TypeConverter
 import dev.gatsyuk.grindsync.core.model.ExerciseType
+import dev.gatsyuk.grindsync.core.model.FoodSource
+import dev.gatsyuk.grindsync.core.model.Meal
 import dev.gatsyuk.grindsync.core.model.Muscle
 import dev.gatsyuk.grindsync.core.model.MuscleRole
 import dev.gatsyuk.grindsync.core.model.SetKind
@@ -29,6 +31,12 @@ class Converters {
 
     @TypeConverter fun muscleRoleToString(v: MuscleRole): String = v.name
     @TypeConverter fun stringToMuscleRole(v: String): MuscleRole = MuscleRole.valueOf(v)
+
+    @TypeConverter fun mealToString(v: Meal): String = v.name
+    @TypeConverter fun stringToMeal(v: String): Meal = Meal.valueOf(v)
+
+    @TypeConverter fun foodSourceToString(v: FoodSource): String = v.name
+    @TypeConverter fun stringToFoodSource(v: String): FoodSource = FoodSource.valueOf(v)
 
     @TypeConverter fun localDateToEpochDay(v: LocalDate): Long = v.toEpochDay()
     @TypeConverter fun epochDayToLocalDate(v: Long): LocalDate = LocalDate.ofEpochDay(v)
