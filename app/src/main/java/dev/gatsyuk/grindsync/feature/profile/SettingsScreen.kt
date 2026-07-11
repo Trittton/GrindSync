@@ -28,8 +28,16 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.gatsyuk.grindsync.core.datastore.UserPreferencesRepository
 import dev.gatsyuk.grindsync.core.model.ThemeMode
+import dev.gatsyuk.grindsync.core.model.Sex
 import dev.gatsyuk.grindsync.core.model.WeightUnit
+import dev.gatsyuk.grindsync.core.model.Weights
 import dev.gatsyuk.grindsync.core.model.formatSeconds
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -45,10 +53,16 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, ThemeMode.DARK)
     val restTimerSeconds = prefs.restTimerSeconds
         .stateIn(viewModelScope, SharingStarted.Eagerly, 120)
+    val sex = prefs.sex
+        .stateIn(viewModelScope, SharingStarted.Eagerly, Sex.UNSET)
+    val bodyweightFallbackKg = prefs.bodyweightFallbackKg
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun setWeightUnit(unit: WeightUnit) = viewModelScope.launch { prefs.setWeightUnit(unit) }
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch { prefs.setThemeMode(mode) }
     fun setRestTimerSeconds(seconds: Int) = viewModelScope.launch { prefs.setRestTimerSeconds(seconds) }
+    fun setSex(sex: Sex) = viewModelScope.launch { prefs.setSex(sex) }
+    fun setBodyweightFallbackKg(kg: Double?) = viewModelScope.launch { prefs.setBodyweightFallbackKg(kg) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,6 +74,8 @@ fun SettingsScreen(
     val weightUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val restSeconds by viewModel.restTimerSeconds.collectAsStateWithLifecycle()
+    val sex by viewModel.sex.collectAsStateWithLifecycle()
+    val bodyweightKg by viewModel.bodyweightFallbackKg.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -106,6 +122,52 @@ fun SettingsScreen(
                         ) { Text(mode.name.lowercase().replaceFirstChar { it.uppercase() }) }
                     }
                 }
+            }
+
+            Column {
+                Text("Strength profile", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Used only to normalize ranks (IPF GL & strength standards).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Sex.entries.forEachIndexed { index, s ->
+                        SegmentedButton(
+                            selected = sex == s,
+                            onClick = { viewModel.setSex(s) },
+                            shape = SegmentedButtonDefaults.itemShape(index, Sex.entries.size),
+                        ) {
+                            Text(
+                                when (s) {
+                                    Sex.UNSET -> "Not set"
+                                    Sex.MALE -> "Male"
+                                    Sex.FEMALE -> "Female"
+                                },
+                            )
+                        }
+                    }
+                }
+                var bwText by remember(bodyweightKg, weightUnit) {
+                    mutableStateOf(bodyweightKg?.let { Weights.formatKgAs(it, weightUnit) } ?: "")
+                }
+                OutlinedTextField(
+                    value = bwText,
+                    onValueChange = { text ->
+                        bwText = text
+                        val parsed = text.replace(',', '.').toDoubleOrNull()
+                        if (text.isBlank()) {
+                            viewModel.setBodyweightFallbackKg(null)
+                        } else if (parsed != null) {
+                            viewModel.setBodyweightFallbackKg(Weights.displayToKg(parsed, weightUnit))
+                        }
+                    },
+                    label = { Text("Bodyweight (${Weights.unitLabel(weightUnit)}) — fallback") },
+                    supportingText = { Text("A bodyweight logged on a workout takes priority.") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                )
             }
 
             Column {

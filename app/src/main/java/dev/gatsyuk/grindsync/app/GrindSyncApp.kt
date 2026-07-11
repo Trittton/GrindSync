@@ -45,6 +45,7 @@ import dev.gatsyuk.grindsync.core.database.entity.WorkoutEntity
 import dev.gatsyuk.grindsync.feature.nutrition.NutritionScreen
 import dev.gatsyuk.grindsync.feature.profile.ProfileScreen
 import dev.gatsyuk.grindsync.feature.profile.SettingsScreen
+import dev.gatsyuk.grindsync.feature.profile.rankmap.MuscleRanksScreen
 import dev.gatsyuk.grindsync.feature.profile.stats.ExerciseStatsScreen
 import dev.gatsyuk.grindsync.feature.workout.TrainScreen
 import dev.gatsyuk.grindsync.feature.workout.live.LiveWorkoutScreen
@@ -68,6 +69,7 @@ const val SETTINGS_ROUTE = "settings"
 const val LIVE_WORKOUT_ROUTE = "live/{workoutId}"
 const val ROUTINE_EDITOR_ROUTE = "routine_editor/{routineId}"
 const val EXERCISE_STATS_ROUTE = "exercise_stats/{exerciseId}"
+const val MUSCLE_RANKS_ROUTE = "muscle_ranks"
 
 fun liveWorkoutRoute(workoutId: Long) = "live/$workoutId"
 fun routineEditorRoute(routineId: Long?) = "routine_editor/${routineId ?: -1L}"
@@ -144,7 +146,11 @@ fun GrindSyncApp(shellViewModel: ShellViewModel = hiltViewModel()) {
                 ProfileScreen(
                     onOpenSettings = { navController.navigate(SETTINGS_ROUTE) },
                     onOpenExercise = { navController.navigate(exerciseStatsRoute(it)) },
+                    onOpenMuscleRanks = { navController.navigate(MUSCLE_RANKS_ROUTE) },
                 )
+            }
+            composable(MUSCLE_RANKS_ROUTE) {
+                MuscleRanksScreen(onBack = { navController.popBackStack() })
             }
             composable(
                 EXERCISE_STATS_ROUTE,

@@ -13,4 +13,10 @@ enum class WeightUnit { KG, LB }
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/** Needed only for strength normalization (IPF GL / standards). */
+enum class Sex { UNSET, MALE, FEMALE }
+
+/** Rank ladder, worst to best. UNRANKED (no data) is modeled as null. */
+enum class Rank { E, D, C, B, A, S }
+
 const val KG_PER_LB = 0.45359237

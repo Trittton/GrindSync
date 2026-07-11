@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -12,6 +13,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import dev.gatsyuk.grindsync.core.model.Sex
 import dev.gatsyuk.grindsync.core.model.ThemeMode
 import dev.gatsyuk.grindsync.core.model.WeightUnit
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +31,8 @@ class UserPreferencesRepository @Inject constructor(
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val REST_TIMER_SECONDS = intPreferencesKey("rest_timer_seconds")
+        val PROFILE_SEX = stringPreferencesKey("profile_sex")
+        val PROFILE_BODYWEIGHT_KG = doublePreferencesKey("profile_bodyweight_kg")
     }
 
     /** Display-only unit; stored data stays kg (SPEC §12.1). */
@@ -50,6 +54,27 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setRestTimerSeconds(seconds: Int) {
         context.dataStore.edit { it[Keys.REST_TIMER_SECONDS] = seconds }
+    }
+
+    /** Only used for strength normalization (IPF GL / standards). */
+    val sex: Flow<Sex> = context.dataStore.data.map { prefs ->
+        prefs[Keys.PROFILE_SEX]?.let { runCatching { Sex.valueOf(it) }.getOrNull() } ?: Sex.UNSET
+    }
+
+    /** Fallback bodyweight (kg) when no workout has one logged. */
+    val bodyweightFallbackKg: Flow<Double?> = context.dataStore.data.map { prefs ->
+        prefs[Keys.PROFILE_BODYWEIGHT_KG]
+    }
+
+    suspend fun setSex(sex: Sex) {
+        context.dataStore.edit { it[Keys.PROFILE_SEX] = sex.name }
+    }
+
+    suspend fun setBodyweightFallbackKg(kg: Double?) {
+        context.dataStore.edit { prefs ->
+            if (kg == null) prefs.remove(Keys.PROFILE_BODYWEIGHT_KG)
+            else prefs[Keys.PROFILE_BODYWEIGHT_KG] = kg
+        }
     }
 
     suspend fun setWeightUnit(unit: WeightUnit) {
