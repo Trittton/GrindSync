@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import dev.gatsyuk.grindsync.core.database.dao.ExerciseDao
 import dev.gatsyuk.grindsync.core.database.dao.RoutineDao
+import dev.gatsyuk.grindsync.core.database.dao.StatsDao
 import dev.gatsyuk.grindsync.core.database.dao.WorkoutDao
 import dev.gatsyuk.grindsync.core.database.entity.ExerciseEntity
 import dev.gatsyuk.grindsync.core.database.entity.ExerciseMuscleEntity
@@ -34,6 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao
     abstract fun routineDao(): RoutineDao
     abstract fun workoutDao(): WorkoutDao
+    abstract fun statsDao(): StatsDao
 
     companion object {
         const val NAME = "grindsync.db"

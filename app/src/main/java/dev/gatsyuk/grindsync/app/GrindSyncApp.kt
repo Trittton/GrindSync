@@ -45,6 +45,7 @@ import dev.gatsyuk.grindsync.core.database.entity.WorkoutEntity
 import dev.gatsyuk.grindsync.feature.nutrition.NutritionScreen
 import dev.gatsyuk.grindsync.feature.profile.ProfileScreen
 import dev.gatsyuk.grindsync.feature.profile.SettingsScreen
+import dev.gatsyuk.grindsync.feature.profile.stats.ExerciseStatsScreen
 import dev.gatsyuk.grindsync.feature.workout.TrainScreen
 import dev.gatsyuk.grindsync.feature.workout.live.LiveWorkoutScreen
 import dev.gatsyuk.grindsync.feature.workout.routines.RoutineEditorScreen
@@ -66,9 +67,11 @@ enum class TopLevelDestination(
 const val SETTINGS_ROUTE = "settings"
 const val LIVE_WORKOUT_ROUTE = "live/{workoutId}"
 const val ROUTINE_EDITOR_ROUTE = "routine_editor/{routineId}"
+const val EXERCISE_STATS_ROUTE = "exercise_stats/{exerciseId}"
 
 fun liveWorkoutRoute(workoutId: Long) = "live/$workoutId"
 fun routineEditorRoute(routineId: Long?) = "routine_editor/${routineId ?: -1L}"
+fun exerciseStatsRoute(exerciseId: Long) = "exercise_stats/$exerciseId"
 
 @HiltViewModel
 class ShellViewModel @Inject constructor(workoutDao: WorkoutDao) : ViewModel() {
@@ -138,7 +141,16 @@ fun GrindSyncApp(shellViewModel: ShellViewModel = hiltViewModel()) {
             }
             composable(TopLevelDestination.NUTRITION.route) { NutritionScreen() }
             composable(TopLevelDestination.PROFILE.route) {
-                ProfileScreen(onOpenSettings = { navController.navigate(SETTINGS_ROUTE) })
+                ProfileScreen(
+                    onOpenSettings = { navController.navigate(SETTINGS_ROUTE) },
+                    onOpenExercise = { navController.navigate(exerciseStatsRoute(it)) },
+                )
+            }
+            composable(
+                EXERCISE_STATS_ROUTE,
+                arguments = listOf(navArgument("exerciseId") { type = NavType.LongType }),
+            ) {
+                ExerciseStatsScreen(onBack = { navController.popBackStack() })
             }
             composable(SETTINGS_ROUTE) {
                 SettingsScreen(onBack = { navController.popBackStack() })
