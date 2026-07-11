@@ -3,9 +3,11 @@ package dev.gatsyuk.grindsync.feature.workout
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -147,7 +149,7 @@ private fun HistoryList(history: List<WorkoutWithContent>, onOpen: (Long) -> Uni
         return
     }
     val monthFormat = remember { DateTimeFormatter.ofPattern("LLLL yyyy", Locale.ENGLISH) }
-    val dayFormat = remember { DateTimeFormatter.ofPattern("EEE, MMM d", Locale.ENGLISH) }
+    val weekdayFormat = remember { DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH) }
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         var lastMonth: String? = null
@@ -166,26 +168,45 @@ private fun HistoryList(history: List<WorkoutWithContent>, onOpen: (Long) -> Uni
             }
             item(key = "workout-${entry.workout.id}") {
                 Card(onClick = { onOpen(entry.workout.id) }, modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp)) {
-                        Text(entry.workout.name, style = MaterialTheme.typography.titleMedium)
-                        val duration = entry.workout.startTimeEpochMillis?.let { start ->
-                            entry.workout.endTimeEpochMillis?.let { end ->
-                                " · ${formatDurationMillis(end - start)}"
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        // Date block on the left (reference layout).
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.width(52.dp),
+                        ) {
+                            Text(
+                                entry.workout.date.dayOfMonth.toString(),
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Text(
+                                entry.workout.date.format(weekdayFormat).uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(entry.workout.name, style = MaterialTheme.typography.titleMedium)
+                            val duration = entry.workout.startTimeEpochMillis?.let { start ->
+                                entry.workout.endTimeEpochMillis?.let { end ->
+                                    formatDurationMillis(end - start)
+                                }
                             }
-                        }.orEmpty()
-                        Text(
-                            entry.workout.date.format(dayFormat) + duration,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        val setCount = entry.exercises.sumOf { it.sets.size }
-                        Text(
-                            "${entry.exercises.size} exercises · $setCount sets — " +
+                            val setCount = entry.exercises.sumOf { it.sets.size }
+                            Text(
+                                listOfNotNull(duration, "${entry.exercises.size} exercises", "$setCount sets")
+                                    .joinToString(" · "),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
                                 entry.exercises.sortedBy { it.workoutExercise.position }
                                     .joinToString(limit = 3) { it.exercise.name },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
@@ -206,7 +227,8 @@ private fun RoutineList(
     }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(routines, key = { it.routine.id }) { routine ->
-            Card(Modifier.fillMaxWidth()) {
+            // Tap the card to edit; START is the only explicit button.
+            Card(onClick = { onEdit(routine.routine.id) }, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     Text(routine.routine.name, style = MaterialTheme.typography.titleMedium)
                     routine.exercises.sortedBy { it.position }.forEach { entry ->
@@ -225,7 +247,6 @@ private fun RoutineList(
                         horizontalArrangement = Arrangement.End,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        TextButton(onClick = { onEdit(routine.routine.id) }) { Text("Edit") }
                         TextButton(onClick = { onStart(routine.routine.id) }) { Text("START") }
                     }
                 }

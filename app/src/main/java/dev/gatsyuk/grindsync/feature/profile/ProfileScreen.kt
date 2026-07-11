@@ -243,14 +243,24 @@ private fun RankHeroCard(game: RankEngine.GamificationState, onOpenMuscleRanks: 
 @Composable
 private fun StatSheetRow(game: RankEngine.GamificationState) {
     Card(Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(12.dp)) {
-            StatCell(
-                "STR",
-                game.statSheet.strengthGl?.let { "%.1f".format(it) } ?: "—",
-                Modifier.weight(1f),
+        Column(Modifier.padding(12.dp)) {
+            Row(Modifier.fillMaxWidth()) {
+                StatCell(
+                    "STR",
+                    game.statSheet.strengthGl?.let { "%.1f".format(it) } ?: "—",
+                    Modifier.weight(1f),
+                )
+                StatCell("END", game.statSheet.enduranceReps28d.toString(), Modifier.weight(1f))
+                StatCell("CON", "${game.statSheet.consistencyPct}%", Modifier.weight(1f))
+            }
+            Text(
+                "STR — IPF GL points from your best squat/bench/deadlift · " +
+                    "END — working reps in the last 28 days · " +
+                    "CON — share of the last 8 weeks with ≥2 sessions",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
             )
-            StatCell("END (reps/28d)", game.statSheet.enduranceReps28d.toString(), Modifier.weight(1f))
-            StatCell("CON", "${game.statSheet.consistencyPct}%", Modifier.weight(1f))
         }
     }
 }
@@ -358,26 +368,32 @@ private fun FrequencyCard(weekCounts: List<Int>) {
             )
             val max = (weekCounts.maxOrNull() ?: 0).coerceAtLeast(1)
             Row(
-                Modifier.fillMaxWidth().height(64.dp).padding(top = 10.dp),
+                Modifier.fillMaxWidth().padding(top = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.Bottom,
             ) {
                 weekCounts.forEach { count ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        // Fixed-height bar area + separate label row: no overlap.
                         Box(
-                            Modifier
-                                .width(18.dp)
-                                .height(((44 * count / max).coerceAtLeast(2)).dp)
-                                .background(
-                                    if (count > 0) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.surfaceVariant,
-                                    RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp),
-                                ),
-                        )
+                            Modifier.height(44.dp).width(18.dp),
+                            contentAlignment = Alignment.BottomCenter,
+                        ) {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(((40 * count / max).coerceAtLeast(2)).dp)
+                                    .background(
+                                        if (count > 0) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surfaceVariant,
+                                        RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp),
+                                    ),
+                            )
+                        }
                         Text(
                             count.toString(),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp),
                         )
                     }
                 }

@@ -54,22 +54,40 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
+data class RankMapUiState(
+    val game: RankEngine.GamificationState,
+    /** Trained exercises per muscle that have NO strength standard — shown as
+     *  "not counted" so the ranking inputs are fully transparent. */
+    val uncountedByMuscle: Map<Muscle, List<String>>,
+)
+
 @HiltViewModel
 class MuscleRanksViewModel @Inject constructor(
     workoutDao: WorkoutDao,
     exerciseDao: ExerciseDao,
     prefs: UserPreferencesRepository,
 ) : ViewModel() {
-    val gamification = combine(
+    val state = combine(
         workoutDao.observeCompletedWorkouts(),
         exerciseDao.observeExercisesWithMuscles(),
         prefs.sex,
         prefs.bodyweightFallbackKg,
     ) { workouts, catalog, sex, bwFallback ->
-        RankEngine.compute(workouts, catalog, sex, bwFallback)
+        val game = RankEngine.compute(workouts, catalog, sex, bwFallback)
+        val scoredIds = game.exercises.filter { it.score != null }.map { it.exerciseId }.toSet()
+        val trainedIds = game.exercises.map { it.exerciseId }.toSet()
+        val uncounted = mutableMapOf<Muscle, MutableList<String>>()
+        catalog.forEach { entry ->
+            if (entry.exercise.id in trainedIds && entry.exercise.id !in scoredIds) {
+                entry.muscles.forEach { mapping ->
+                    uncounted.getOrPut(mapping.muscle) { mutableListOf() }.add(entry.exercise.name)
+                }
+            }
+        }
+        RankMapUiState(game, uncounted)
     }.stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5_000),
-        RankEngine.compute(emptyList(), emptyList(), Sex.UNSET, null),
+        RankMapUiState(RankEngine.compute(emptyList(), emptyList(), Sex.UNSET, null), emptyMap()),
     )
 }
 
@@ -85,7 +103,8 @@ fun MuscleRanksScreen(
     onBack: () -> Unit,
     viewModel: MuscleRanksViewModel = hiltViewModel(),
 ) {
-    val game by viewModel.gamification.collectAsStateWithLifecycle()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val game = uiState.game
     var expanded by rememberSaveable { mutableStateOf<String?>(null) }
 
     Scaffold(
@@ -172,6 +191,15 @@ fun MuscleRanksScreen(
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
+                                    uiState.uncountedByMuscle[muscle]?.let { names ->
+                                        Text(
+                                            "Trained but not counted (no strength standard yet): " +
+                                                names.joinToString(),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 6.dp),
+                                        )
+                                    }
                                 } else {
                                     rank.contributors.forEach { contributor ->
                                         Row(
@@ -208,6 +236,15 @@ fun MuscleRanksScreen(
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                         }
+                                    }
+                                    uiState.uncountedByMuscle[muscle]?.let { names ->
+                                        Text(
+                                            "Trained but not counted (no strength standard yet): " +
+                                                names.joinToString(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 8.dp),
+                                        )
                                     }
                                 }
                             }
