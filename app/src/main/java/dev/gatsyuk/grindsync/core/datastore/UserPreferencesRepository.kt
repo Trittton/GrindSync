@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -33,6 +34,7 @@ class UserPreferencesRepository @Inject constructor(
         val REST_TIMER_SECONDS = intPreferencesKey("rest_timer_seconds")
         val PROFILE_SEX = stringPreferencesKey("profile_sex")
         val PROFILE_BODYWEIGHT_KG = doublePreferencesKey("profile_bodyweight_kg")
+        val AUTO_BACKUP = booleanPreferencesKey("auto_backup_enabled")
     }
 
     /** Display-only unit; stored data stays kg (SPEC §12.1). */
@@ -75,6 +77,15 @@ class UserPreferencesRepository @Inject constructor(
             if (kg == null) prefs.remove(Keys.PROFILE_BODYWEIGHT_KG)
             else prefs[Keys.PROFILE_BODYWEIGHT_KG] = kg
         }
+    }
+
+    /** Daily local backup toggle (off by default). */
+    val autoBackupEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.AUTO_BACKUP] ?: false
+    }
+
+    suspend fun setAutoBackupEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.AUTO_BACKUP] = enabled }
     }
 
     suspend fun setWeightUnit(unit: WeightUnit) {

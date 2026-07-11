@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Used ONLY for explicit Open Food Facts searches (NFR-8); everything
          else works fully offline and no data ever leaves the device. -->
@@ -13,6 +14,19 @@
         android:theme="@style/Theme.GrindSync"
         android:allowBackup="true"
         android:supportsRtl="true">
+
+        <!-- We provide WorkManager config via Configuration.Provider, so disable
+             its default initializer (required for the Hilt worker factory). -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
 
         <activity
             android:name=".MainActivity"

@@ -10,6 +10,7 @@ import dagger.hilt.components.SingletonComponent
 import dev.gatsyuk.grindsync.core.database.AppDatabase
 import dev.gatsyuk.grindsync.core.database.Migrations
 import dev.gatsyuk.grindsync.core.database.dao.ExerciseDao
+import dev.gatsyuk.grindsync.core.database.dao.ExportDao
 import dev.gatsyuk.grindsync.core.database.dao.NutritionDao
 import dev.gatsyuk.grindsync.core.database.dao.RoutineDao
 import dev.gatsyuk.grindsync.core.database.dao.StatsDao
@@ -39,4 +40,5 @@ object DatabaseModule {
     @Provides fun provideWorkoutDao(db: AppDatabase): WorkoutDao = db.workoutDao()
     @Provides fun provideStatsDao(db: AppDatabase): StatsDao = db.statsDao()
     @Provides fun provideNutritionDao(db: AppDatabase): NutritionDao = db.nutritionDao()
+    @Provides fun provideExportDao(db: AppDatabase): ExportDao = db.exportDao()
 }
