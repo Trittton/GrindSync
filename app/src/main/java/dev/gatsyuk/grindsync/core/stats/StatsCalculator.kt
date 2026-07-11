@@ -68,7 +68,10 @@ object StatsCalculator {
             if (start != null && end != null && end > start) duration += end - start
             workout.exercises.forEach { entry ->
                 entry.sets.forEach { set ->
-                    if (set.countsForStats()) {
+                    // Untouched prefab rows (no measurements at all) don't count.
+                    val hasData = set.weightKg != null || set.reps != null ||
+                        set.timeSeconds != null || set.distanceMeters != null || set.kcal != null
+                    if (set.countsForStats() && hasData) {
                         sets++
                         reps += set.reps ?: 0
                         if (typeSupportsStrengthStats(entry.exercise.exerciseType)) {

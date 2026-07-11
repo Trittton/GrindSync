@@ -44,6 +44,17 @@ interface WorkoutDao {
     @Query("DELETE FROM workout WHERE id = :id")
     suspend fun deleteWorkoutById(id: Long)
 
+    /** Prunes prefab rows the user never touched (no measurements, no note). */
+    @Query(
+        """
+        DELETE FROM set_entry
+        WHERE workout_exercise_id IN (SELECT id FROM workout_exercise WHERE workout_id = :workoutId)
+          AND weight_kg IS NULL AND reps IS NULL AND time_seconds IS NULL
+          AND distance_meters IS NULL AND kcal IS NULL AND notes IS NULL
+        """,
+    )
+    suspend fun deleteEmptySets(workoutId: Long)
+
     // --- reads ---
     @Query("SELECT * FROM workout WHERE id = :id")
     suspend fun getWorkout(id: Long): WorkoutEntity?

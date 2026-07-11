@@ -31,7 +31,11 @@ class WorkoutRepository @Inject constructor(
             ),
         )
 
-    /** START on a routine: instantiate a live workout with its exercises, in order. */
+    /**
+     * START on a routine: instantiate a live workout with its exercises AND
+     * the target number of set rows per exercise, prefilled from the last
+     * performance (TargetMode LATEST). Untouched rows are pruned on finish.
+     */
     suspend fun startFromRoutine(routineId: Long): Long {
         val routine = requireNotNull(routineDao.getRoutineWithExercises(routineId)) {
             "Routine $routineId not found"
@@ -45,25 +49,50 @@ class WorkoutRepository @Inject constructor(
             ),
         )
         routine.exercises.sortedBy { it.position }.forEachIndexed { index, entry ->
-            workoutDao.insertWorkoutExercise(
+            val workoutExerciseId = workoutDao.insertWorkoutExercise(
                 WorkoutExerciseEntity(
                     workoutId = workoutId,
                     exerciseId = entry.exerciseId,
                     position = index,
                 ),
             )
+            prefillSets(workoutExerciseId, entry.exerciseId, entry.targetSets)
         }
         return workoutId
     }
 
-    suspend fun addExercise(workoutId: Long, exerciseId: Long): Long =
-        workoutDao.insertWorkoutExercise(
+    /** Adding an exercise mid-workout mirrors its last session (count + values). */
+    suspend fun addExercise(workoutId: Long, exerciseId: Long): Long {
+        val workoutExerciseId = workoutDao.insertWorkoutExercise(
             WorkoutExerciseEntity(
                 workoutId = workoutId,
                 exerciseId = exerciseId,
                 position = workoutDao.nextExercisePosition(workoutId),
             ),
         )
+        val lastCount = workoutDao.getLastPerformedSets(exerciseId).size
+        if (lastCount > 0) prefillSets(workoutExerciseId, exerciseId, lastCount)
+        return workoutExerciseId
+    }
+
+    private suspend fun prefillSets(workoutExerciseId: Long, exerciseId: Long, count: Int) {
+        val last = workoutDao.getLastPerformedSets(exerciseId)
+        repeat(count.coerceAtLeast(0)) { index ->
+            val template = last.getOrNull(index) ?: last.lastOrNull()
+            workoutDao.insertSetEntry(
+                SetEntryEntity(
+                    workoutExerciseId = workoutExerciseId,
+                    position = index,
+                    setKind = template?.setKind ?: SetKind.WORKING,
+                    weightKg = template?.weightKg,
+                    reps = template?.reps,
+                    timeSeconds = template?.timeSeconds,
+                    distanceMeters = template?.distanceMeters,
+                    kcal = template?.kcal,
+                ),
+            )
+        }
+    }
 
     /**
      * Insert a set after validating its fields against the exercise type.
@@ -120,6 +149,8 @@ class WorkoutRepository @Inject constructor(
     suspend fun finishWorkout(workoutId: Long) {
         val workout = workoutDao.getWorkout(workoutId) ?: return
         if (workout.endTimeEpochMillis == null) {
+            // Drop prefab rows the user never filled in, then close the session.
+            workoutDao.deleteEmptySets(workoutId)
             workoutDao.updateWorkout(workout.copy(endTimeEpochMillis = System.currentTimeMillis()))
         }
     }

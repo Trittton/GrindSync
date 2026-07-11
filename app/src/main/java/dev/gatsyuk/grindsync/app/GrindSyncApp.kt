@@ -129,10 +129,12 @@ fun GrindSyncApp(shellViewModel: ShellViewModel = hiltViewModel()) {
             }
         },
     ) { innerPadding ->
+        // Consume only the BOTTOM inset here: each screen's own top bar already
+        // handles the status bar, and taking both produced a doubled top gap.
         NavHost(
             navController = navController,
             startDestination = TopLevelDestination.TRAIN.route,
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
         ) {
             composable(TopLevelDestination.TRAIN.route) {
                 TrainScreen(

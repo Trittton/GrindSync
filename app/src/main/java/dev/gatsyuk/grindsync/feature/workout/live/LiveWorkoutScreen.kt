@@ -102,8 +102,10 @@ fun LiveWorkoutScreen(
                             leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) },
                         )
                     } else {
-                        IconButton(onClick = { showRestDialog = true }) {
-                            Icon(Icons.Default.Timer, contentDescription = "Rest timer")
+                        // One tap = start resting with the Settings default.
+                        // The running chip opens stop/adjust options.
+                        IconButton(onClick = { viewModel.startRest(restDefault) }) {
+                            Icon(Icons.Default.Timer, contentDescription = "Start rest timer")
                         }
                     }
                     IconButton(onClick = { menuOpen = true }) {

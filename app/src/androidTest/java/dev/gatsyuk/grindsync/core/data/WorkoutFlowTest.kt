@@ -57,6 +57,11 @@ class WorkoutFlowTest {
         assertEquals(SeedData.exampleRoutine.size, live.exercises.size)
         assertNull(live.workout.endTimeEpochMillis) // in progress
 
+        // START pre-creates the routine's target set rows (empty on virgin history).
+        val prefabSquat = live.exercises.first { it.exercise.name == "Back Squat" }
+        assertEquals(3, prefabSquat.sets.size)
+        assertTrue(prefabSquat.sets.all { it.weightKg == null && it.reps == null })
+
         // Log two working sets of squats (weights canonical kg).
         val squat = live.exercises.first { it.exercise.name == "Back Squat" }
         repo.addSet(
@@ -85,14 +90,16 @@ class WorkoutFlowTest {
 
         repo.finishWorkout(workoutId)
 
-        // History shows the completed session with its sets.
+        // History shows the completed session; untouched prefab rows were pruned.
         val history = db.workoutDao().observeCompletedWorkouts().first()
         assertEquals(1, history.size)
         val logged = history.single()
         assertNotNull(logged.workout.endTimeEpochMillis)
         val squatSets = logged.exercises.first { it.exercise.name == "Back Squat" }.sets
-        assertEquals(2, squatSets.size)
+        assertEquals(2, squatSets.size) // 3 empty prefabs pruned, 2 real sets kept
         assertEquals(100.0, squatSets.first().weightKg!!, 0.0)
+        val plankSets = logged.exercises.first { it.exercise.name == "Plank" }.sets
+        assertEquals(1, plankSets.size)
 
         // LATEST prefill now serves this session back.
         val squatExerciseId = squat.exercise.id

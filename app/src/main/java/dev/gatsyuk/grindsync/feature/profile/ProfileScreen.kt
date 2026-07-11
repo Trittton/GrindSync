@@ -175,15 +175,21 @@ private fun RankHeroCard(game: RankEngine.GamificationState, onOpenMuscleRanks: 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val unranked = game.overallRank == null
+                val label = rankLabel(game.overallRank) // unranked renders as the E− floor
                 Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .background(rankColor(game.overallRank), RoundedCornerShape(14.dp)),
+                        .background(
+                            rankColor(game.overallRank ?: dev.gatsyuk.grindsync.core.model.Rank.E_MINUS)
+                                .copy(alpha = if (unranked) 0.45f else 1f),
+                            RoundedCornerShape(14.dp),
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        rankLabel(game.overallRank),
-                        fontSize = 28.sp,
+                        label,
+                        fontSize = if (label.length > 2) 18.sp else 28.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White,
                     )
@@ -194,7 +200,8 @@ private fun RankHeroCard(game: RankEngine.GamificationState, onOpenMuscleRanks: 
                         color = MaterialTheme.colorScheme.primary)
                     Text(
                         game.glPoints?.let { "IPF GL %.1f".format(it) }
-                            ?: "Log squat, bench & deadlift — and set sex + bodyweight in Settings",
+                            ?: "No data for ranking yet — log squat, bench & deadlift " +
+                            "and set sex + bodyweight in Settings",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -264,12 +271,19 @@ private fun AchievementsCard(game: RankEngine.GamificationState) {
     val dateFormat = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH)
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
-            val unlocked = game.achievements.count { it.unlockedOn != null }
             Text(
-                "Achievements  $unlocked/${game.achievements.size}",
+                "Achievements",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
+            if (game.achievements.isEmpty()) {
+                Text(
+                    "None defined yet.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            }
             game.achievements.forEach { achievement ->
                 Row(
                     Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -393,8 +407,8 @@ private fun ExerciseStatRow(
             if (standing?.rank != null) {
                 Box(
                     modifier = Modifier
-                        .size(26.dp)
-                        .background(rankColor(standing.rank), RoundedCornerShape(7.dp)),
+                        .background(rankColor(standing.rank), RoundedCornerShape(7.dp))
+                        .padding(horizontal = 7.dp, vertical = 4.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(

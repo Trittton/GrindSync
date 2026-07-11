@@ -109,17 +109,13 @@ object RankEngine {
     ): GamificationState {
         val chronological = history.sortedWith(compareBy({ it.workout.date }, { it.workout.id }))
 
-        // --- single chronological pass: XP + PR events + achievements raw data ---
+        // --- single chronological pass: XP + PR events ---
         val xpByExercise = mutableMapOf<Long, Int>()
         val bestE1rm = mutableMapOf<Long, Double>()
         val bestWeightAtReps = mutableMapOf<Long, MutableMap<Int, Double>>()
         var prEvents = 0
-        var tenthPrDate: LocalDate? = null
-        var hundredClubDate: LocalDate? = null
-        var fiveTonDate: LocalDate? = null
 
         chronological.forEach { workout ->
-            var workoutVolume = 0.0
             workout.exercises.forEach { entry ->
                 val type = entry.exercise.exerciseType
                 val strength = StatsCalculator.typeSupportsStrengthStats(type)
@@ -133,13 +129,16 @@ object RankEngine {
                     val w = set.weightKg
                     val r = set.reps
                     if ((w ?: 0.0) > MAX_PLAUSIBLE_WEIGHT_KG || (r ?: 0) > MAX_PLAUSIBLE_REPS) return@sets
+                    // Untouched prefab rows (all fields empty) never earn XP —
+                    // START pre-creates target sets, and blanks must not farm anything.
+                    val hasData = w != null || r != null || set.timeSeconds != null ||
+                        set.distanceMeters != null || set.kcal != null
+                    if (!hasData) return@sets
 
                     countedSets++
                     if (countedSets <= SET_XP_CAP_SETS) sessionXp += XP_PER_SET
 
                     if (strength && w != null && w > 0 && r != null && r > 0) {
-                        workoutVolume += w * r * (if (entry.exercise.isUnilateral) 2 else 1)
-
                         val e1 = StatsCalculator.e1rm(w, r)
                         if (e1 != null) {
                             val prev = bestE1rm[entry.exercise.id]
@@ -149,12 +148,6 @@ object RankEngine {
                                     sessionXp += XP_E1RM_PR
                                     e1rmPrAwarded = true
                                     prEvents++
-                                    if (prEvents == 10 && tenthPrDate == null) tenthPrDate = workout.workout.date
-                                }
-                                if (hundredClubDate == null && e1 >= 100.0 &&
-                                    entry.exercise.name in setOf(SQUAT, BENCH, DEADLIFT)
-                                ) {
-                                    hundredClubDate = workout.workout.date
                                 }
                             }
                         }
@@ -167,7 +160,6 @@ object RankEngine {
                                 sessionXp += XP_REP_PR
                                 repPrXp += XP_REP_PR
                                 prEvents++
-                                if (prEvents == 10 && tenthPrDate == null) tenthPrDate = workout.workout.date
                             }
                         }
                     }
@@ -179,7 +171,6 @@ object RankEngine {
                     Int::plus,
                 )
             }
-            if (fiveTonDate == null && workoutVolume >= 5000.0) fiveTonDate = workout.workout.date
         }
 
         // --- profile inputs for normalization ---
@@ -197,7 +188,7 @@ object RankEngine {
         } else {
             null
         }
-        val overallRank = glPoints?.let { StrengthStandards.rankForGlPoints(it) }
+        val overallRank = glPoints?.let { Rank.fromScore(it) }
 
         // --- per-exercise standings + muscle ranks ---
         val standings = catalog
@@ -217,7 +208,7 @@ object RankEngine {
                     level = levelInfo(xp, EXERCISE_LEVEL_UNIT),
                     bestE1rmKg = e1,
                     score = score,
-                    rank = score?.let { StrengthStandards.rankForScore(it) },
+                    rank = score?.let { Rank.fromScore(it) },
                 )
             }
             .sortedByDescending { it.xp }
@@ -236,7 +227,7 @@ object RankEngine {
                 muscleRanks[muscle] = MuscleRank(
                     muscle = muscle,
                     score = weighted,
-                    rank = StrengthStandards.rankForScore(weighted),
+                    rank = Rank.fromScore(weighted),
                     contributors = contributors.sortedByDescending { it.contributionWeight },
                 )
             }
@@ -282,20 +273,9 @@ object RankEngine {
             consistencyPct = goodWeeks * 100 / 8,
         )
 
-        // --- achievements (all derived, with the date they were first earned) ---
-        fun nthWorkoutDate(n: Int): LocalDate? = chronological.getOrNull(n - 1)?.workout?.date
-        val streak4Date = streakDates.firstOrNull { it.second >= 4 }?.let { hit ->
-            chronological.first { weekIndex(it.workout.date) == hit.first }.workout.date
-        }
-        val achievements = listOf(
-            AchievementState("first_workout", "First Blood", "Finish your first workout", nthWorkoutDate(1)),
-            AchievementState("workouts_10", "Regular", "Finish 10 workouts", nthWorkoutDate(10)),
-            AchievementState("workouts_50", "Veteran", "Finish 50 workouts", nthWorkoutDate(50)),
-            AchievementState("hundred_club", "100 kg Club", "Estimated 1RM ≥ 100 kg on S/B/D", hundredClubDate),
-            AchievementState("pr_machine", "PR Machine", "Set 10 personal records", tenthPrDate),
-            AchievementState("streak_4", "Locked In", "Train 4 weeks in a row", streak4Date),
-            AchievementState("five_ton", "Five Tons", "Move 5 000 kg in one session", fiveTonDate),
-        )
+        // --- achievements: deliberately empty — the owner will design the set
+        // worth having; the pipeline (derived, dated) stays in place. ---
+        val achievements = emptyList<AchievementState>()
 
         val overallXp = xpByExercise.values.sum() + chronological.size * XP_PER_WORKOUT
         return GamificationState(

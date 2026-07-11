@@ -45,6 +45,7 @@ import dev.gatsyuk.grindsync.core.datastore.UserPreferencesRepository
 import dev.gatsyuk.grindsync.core.gamification.RankEngine
 import dev.gatsyuk.grindsync.core.model.Muscle
 import dev.gatsyuk.grindsync.core.model.MuscleRole
+import dev.gatsyuk.grindsync.core.model.Rank
 import dev.gatsyuk.grindsync.core.model.Sex
 import dev.gatsyuk.grindsync.core.ui.rankColor
 import dev.gatsyuk.grindsync.core.ui.rankLabel
@@ -107,7 +108,8 @@ fun MuscleRanksScreen(
                 Text(
                     "Strength rank per muscle — weighted average of the normalized " +
                         "best lifts training it (primary ×1.0, secondary ×0.4). " +
-                        "Grey = not trained yet (different from rank E).",
+                        "Ladder: E− up to SSS+ (all-time world-record level). " +
+                        "Dimmed E− = no ranking data yet. Tap a muscle for its lifts.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 4.dp),
@@ -115,9 +117,10 @@ fun MuscleRanksScreen(
             }
             items(Muscle.entries.toList(), key = { it.name }) { muscle ->
                 val rank = game.muscleRanks[muscle]
+                val isExpanded = expanded == muscle.name
                 Card(
                     onClick = {
-                        expanded = if (expanded == muscle.name) null else muscle.name
+                        expanded = if (isExpanded) null else muscle.name
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -125,8 +128,12 @@ fun MuscleRanksScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
-                                    .size(30.dp)
-                                    .background(rankColor(rank?.rank), RoundedCornerShape(8.dp)),
+                                    .background(
+                                        rankColor(rank?.rank ?: Rank.E_MINUS)
+                                            .copy(alpha = if (rank == null) 0.45f else 1f),
+                                        RoundedCornerShape(8.dp),
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 5.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
@@ -143,30 +150,64 @@ fun MuscleRanksScreen(
                                     style = MaterialTheme.typography.titleSmall,
                                 )
                                 Text(
-                                    rank?.let { "Score %.0f / 100".format(it.score) } ?: "Not trained",
+                                    rank?.let { "Score %.0f".format(it.score) }
+                                        ?: "No data for ranking yet",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
+                            Text(
+                                if (isExpanded) "▲" else "▼",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
-                        if (expanded == muscle.name && rank != null) {
-                            Column(Modifier.padding(top = 8.dp)) {
-                                rank.contributors.forEach { contributor ->
-                                    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                                        Text(
-                                            contributor.exerciseName,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        Text(
-                                            "score %.0f · ×%.1f %s".format(
-                                                contributor.score,
-                                                contributor.contributionWeight,
-                                                if (contributor.role == MuscleRole.PRIMARY) "primary" else "secondary",
-                                            ),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
+                        if (isExpanded) {
+                            Column(Modifier.padding(top = 10.dp)) {
+                                if (rank == null) {
+                                    Text(
+                                        "No ranked lifts train this muscle yet. Log a barbell " +
+                                            "lift with a strength standard (squat, bench, deadlift, " +
+                                            "rows, presses…) that targets it.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                } else {
+                                    rank.contributors.forEach { contributor ->
+                                        Row(
+                                            Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(
+                                                        rankColor(Rank.fromScore(contributor.score)),
+                                                        RoundedCornerShape(6.dp),
+                                                    )
+                                                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                                            ) {
+                                                Text(
+                                                    Rank.fromScore(contributor.score).label,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White,
+                                                )
+                                            }
+                                            Spacer(Modifier.width(10.dp))
+                                            Text(
+                                                contributor.exerciseName,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                            Text(
+                                                "×%.1f %s".format(
+                                                    contributor.contributionWeight,
+                                                    if (contributor.role == MuscleRole.PRIMARY) "primary" else "secondary",
+                                                ),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
                                     }
                                 }
                             }

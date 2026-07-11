@@ -84,7 +84,6 @@ class RoutineEditorViewModel @Inject constructor(
 
     val name = MutableStateFlow("")
     val notes = MutableStateFlow("")
-    val targetMode = MutableStateFlow(TargetMode.LATEST)
     val entries = MutableStateFlow<List<EditorEntry>>(emptyList())
     private var loaded = false
 
@@ -96,7 +95,6 @@ class RoutineEditorViewModel @Inject constructor(
                 loaded = true
                 name.value = routine.routine.name
                 notes.value = routine.routine.notes.orEmpty()
-                targetMode.value = routine.routine.targetMode
                 // Names may not be in the map yet; join lazily in UI via exerciseNames.
                 entries.value = routine.exercises.sortedBy { it.position }.map {
                     EditorEntry(it.exerciseId, "", it.targetSets, it.repMin, it.repMax)
@@ -127,16 +125,18 @@ class RoutineEditorViewModel @Inject constructor(
     }
 
     fun save(onDone: () -> Unit) = viewModelScope.launch {
+        // Target mode is always LATEST — FIXED was removed from the UI as a
+        // do-nothing option (user feedback); the DB column stays for compat.
         val routineName = name.value.ifBlank { "Routine" }
         val id = if (isNew) {
             routineDao.insertRoutine(
-                RoutineEntity(name = routineName, targetMode = targetMode.value, notes = notes.value.ifBlank { null }),
+                RoutineEntity(name = routineName, targetMode = TargetMode.LATEST, notes = notes.value.ifBlank { null }),
             )
         } else {
             val existing = routineDao.getRoutineWithExercises(routineId)?.routine
             routineDao.updateRoutine(
                 (existing ?: RoutineEntity(id = routineId, name = routineName))
-                    .copy(name = routineName, targetMode = targetMode.value, notes = notes.value.ifBlank { null }),
+                    .copy(name = routineName, targetMode = TargetMode.LATEST, notes = notes.value.ifBlank { null }),
             )
             routineDao.deleteRoutineExercisesFor(routineId)
             routineId
@@ -170,7 +170,6 @@ fun RoutineEditorScreen(
 ) {
     val name by viewModel.name.collectAsStateWithLifecycle()
     val notes by viewModel.notes.collectAsStateWithLifecycle()
-    val targetMode by viewModel.targetMode.collectAsStateWithLifecycle()
     val entries by viewModel.entries.collectAsStateWithLifecycle()
     val exerciseNames by viewModel.exerciseNames.collectAsStateWithLifecycle()
     var showPicker by remember { mutableStateOf(false) }
@@ -219,23 +218,11 @@ fun RoutineEditorScreen(
                 )
             }
             item {
-                Column {
-                    Text("Targets", style = MaterialTheme.typography.labelLarge)
-                    Text(
-                        "Latest = prefill each exercise from its last performance.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(top = 6.dp)) {
-                        TargetMode.entries.forEachIndexed { index, mode ->
-                            SegmentedButton(
-                                selected = targetMode == mode,
-                                onClick = { viewModel.targetMode.value = mode },
-                                shape = SegmentedButtonDefaults.itemShape(index, TargetMode.entries.size),
-                            ) { Text(mode.name.lowercase().replaceFirstChar { it.uppercase() }) }
-                        }
-                    }
-                }
+                Text(
+                    "Starting this routine prefills each exercise from its last performance.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             itemsIndexed(entries) { index, entry ->

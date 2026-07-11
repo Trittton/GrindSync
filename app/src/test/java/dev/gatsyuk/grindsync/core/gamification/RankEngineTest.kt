@@ -137,21 +137,21 @@ class RankEngineTest {
         )
         val state = RankEngine.compute(listOf(squatOnly, full), catalog, Sex.MALE, null, today)
         assertNotNull(state.glPoints)
-        // total 700 @ 93 kg male ≈ 91.57 GL -> rank A (S needs 92)
+        // total 700 @ 93 kg male ≈ 91.57 GL -> SS− tier (90–95); SSS+ ≈ WR (115+)
         assertEquals(91.57, state.glPoints!!, 0.05)
-        assertEquals(Rank.A, state.overallRank)
+        assertEquals(Rank.SS_MINUS, state.overallRank)
     }
 
     @Test
     fun `muscle rank is contribution-weighted and untrained muscles stay unranked`() {
         val w = workout(
             1, today, 100.0,
-            squat to listOf(set(160.0, 1)),   // squat multiple 1.6 -> score 60
+            squat to listOf(set(160.0, 1)),   // squat multiple 1.6 = B anchor -> score 47.5
         )
         val state = RankEngine.compute(listOf(w), catalog, Sex.MALE, null, today)
         val quads = state.muscleRanks[Muscle.QUADS]!!
-        assertEquals(60.0, quads.score, 0.5)
-        assertEquals(Rank.B, quads.rank)
+        assertEquals(47.5, quads.score, 0.5)
+        assertEquals(Rank.B_MINUS, quads.rank)
         // glutes get the same score via 0.4 weight (single contributor)
         assertNotNull(state.muscleRanks[Muscle.GLUTES])
         // chest untrained -> UNRANKED (absent), not E
@@ -170,15 +170,19 @@ class RankEngineTest {
     }
 
     @Test
-    fun `achievements unlock with dates`() {
-        val d = today.minusWeeks(1)
-        val w1 = workout(1, d, 90.0, squat to listOf(set(120.0, 3)))
+    fun `achievements are deliberately blank until designed`() {
+        val w1 = workout(1, today.minusWeeks(1), 90.0, squat to listOf(set(120.0, 3)))
         val state = RankEngine.compute(listOf(w1), catalog, Sex.MALE, null, today)
-        assertEquals(d, state.achievements.first { it.key == "first_workout" }.unlockedOn)
-        // squat e1RM 132 >= 100 -> 100 kg Club... only on first PR improvement?
-        // No: hundred club requires beating nothing — it checks e1RM >= 100 on record set.
-        assertEquals(d, state.achievements.first { it.key == "hundred_club" }.unlockedOn)
-        assertNull(state.achievements.first { it.key == "workouts_10" }.unlockedOn)
+        assertTrue(state.achievements.isEmpty())
+    }
+
+    @Test
+    fun `untouched prefab sets earn no xp and count nothing`() {
+        val empty = SetEntryEntity(id = nextSetId++, workoutExerciseId = 0, position = 0)
+        val w1 = workout(1, today, 90.0, squat to listOf(empty, set(100.0, 5)))
+        val state = RankEngine.compute(listOf(w1), catalog, Sex.MALE, null, today)
+        // only the real set pays: 1 x 10 XP
+        assertEquals(10, state.exercises.single().xp)
     }
 
     @Test

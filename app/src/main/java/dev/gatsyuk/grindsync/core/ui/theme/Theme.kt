@@ -22,8 +22,10 @@ private val DarkColors = darkColorScheme(
     surface = Color(0xFF141A23),
     onSurface = Color(0xFFE8EDF4),
     surfaceVariant = Color(0xFF1B222D),
-    onSurfaceVariant = Color(0xFF8A94A5),
-    outline = Color(0xFF28303C),
+    onSurfaceVariant = Color(0xFF9AA4B5),
+    // Bright enough to read as an input border on dark cards (user feedback).
+    outline = Color(0xFF4E5A6B),
+    outlineVariant = Color(0xFF39424F),
 )
 
 private val LightColors = lightColorScheme(
@@ -37,7 +39,8 @@ private val LightColors = lightColorScheme(
     onSurface = Color(0xFF131922),
     surfaceVariant = Color(0xFFF4F6FB),
     onSurfaceVariant = Color(0xFF5A6473),
-    outline = Color(0xFFD2D9E4),
+    outline = Color(0xFFAEB9C9),
+    outlineVariant = Color(0xFFD2D9E4),
 )
 
 @Composable
