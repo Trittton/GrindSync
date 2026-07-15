@@ -47,9 +47,9 @@ object RoutineShare {
     /** Throws with a readable message on garbage or a newer format. */
     fun fromJson(text: String): SharedRoutine {
         val parsed = runCatching { json.decodeFromString(SharedRoutine.serializer(), text.trim()) }
-            .getOrElse { throw IllegalArgumentException("That doesn't look like a shared GrindSync routine.") }
+            .getOrElse { throw IllegalArgumentException("That doesn't look like a shared Solo Ranking routine.") }
         require(parsed.grindsyncRoutine in 1..SharedRoutine.FORMAT_VERSION) {
-            "This routine was shared from a newer GrindSync version. Update the app."
+            "This routine was shared from a newer version of Solo Ranking. Update the app."
         }
         require(parsed.exercises.isNotEmpty()) { "The shared routine has no exercises." }
         return parsed

@@ -50,7 +50,7 @@ class RoutineShareTest {
         val ex = assertThrows(IllegalArgumentException::class.java) {
             RoutineShare.fromJson(future)
         }
-        assertTrue(ex.message!!.contains("newer GrindSync version"))
+        assertTrue(ex.message!!.contains("newer version of Solo Ranking"))
     }
 
     @Test

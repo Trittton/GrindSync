@@ -23,7 +23,7 @@ object BackupSerializer {
         val snapshot = json.decodeFromString(BackupSnapshot.serializer(), text)
         require(snapshot.version <= BackupSnapshot.CURRENT_VERSION) {
             "Backup version ${snapshot.version} is newer than this app supports " +
-                "(${BackupSnapshot.CURRENT_VERSION}). Update GrindSync and try again."
+                "(${BackupSnapshot.CURRENT_VERSION}). Update Solo Ranking and try again."
         }
         return snapshot
     }

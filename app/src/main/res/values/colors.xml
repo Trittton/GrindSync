@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Sampled from icon.png backdrop so the adaptive background matches the art. -->
-    <color name="ic_launcher_background">#262930</color>
+    <!-- Sampled from the icon2.png flame border so the adaptive background blends with the art. -->
+    <color name="ic_launcher_background">#593878</color>
 </resources>

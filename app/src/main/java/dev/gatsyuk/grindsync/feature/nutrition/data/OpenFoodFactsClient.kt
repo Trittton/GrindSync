@@ -35,7 +35,7 @@ class OpenFoodFactsClient @Inject constructor() {
             try {
                 connection.connectTimeout = 10_000
                 connection.readTimeout = 10_000
-                connection.setRequestProperty("User-Agent", "GrindSync/0.5 (personal Android app)")
+                connection.setRequestProperty("User-Agent", "SoloRanking/0.7 (personal Android app)")
                 connection.setRequestProperty("Accept", "application/json")
                 val code = connection.responseCode
                 if (code !in 200..299) {

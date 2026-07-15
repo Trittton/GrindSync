@@ -113,7 +113,7 @@ class LiveWorkoutViewModel @Inject constructor(
             sb.appendLine("${entry.exercise.name}: $sets")
         }
         val totalSets = current.exercises.sumOf { it.sets.size }
-        sb.append("$totalSets sets · logged with GrindSync")
+        sb.append("$totalSets sets · logged with Solo Ranking")
         return sb.toString()
     }
 

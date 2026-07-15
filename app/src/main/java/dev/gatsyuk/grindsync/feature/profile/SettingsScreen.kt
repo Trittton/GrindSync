@@ -297,15 +297,15 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedButton(
-                    onClick = { jsonExportLauncher.launch("grindsync-backup.json") },
+                    onClick = { jsonExportLauncher.launch("solo-ranking-backup.json") },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 ) { Text("Export full backup (JSON)") }
                 OutlinedButton(
-                    onClick = { workoutsCsvLauncher.launch("grindsync-workouts.csv") },
+                    onClick = { workoutsCsvLauncher.launch("solo-ranking-workouts.csv") },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("Export workouts (CSV)") }
                 OutlinedButton(
-                    onClick = { nutritionCsvLauncher.launch("grindsync-nutrition.csv") },
+                    onClick = { nutritionCsvLauncher.launch("solo-ranking-nutrition.csv") },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("Export nutrition (CSV)") }
                 OutlinedButton(

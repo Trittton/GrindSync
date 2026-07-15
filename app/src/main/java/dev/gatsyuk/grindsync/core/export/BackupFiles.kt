@@ -15,7 +15,9 @@ import java.time.format.DateTimeFormatter
 object BackupFiles {
 
     private const val DIR = "backups"
-    private const val PREFIX = "grindsync-backup-"
+    private const val PREFIX = "solo-ranking-backup-"
+    // Pre-rename installs (<= 0.6.2) wrote this prefix; still list/prune those files.
+    private const val LEGACY_PREFIX = "grindsync-backup-"
     private const val SUFFIX = ".json"
     private val stamp = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault())
 
@@ -26,7 +28,9 @@ object BackupFiles {
         File(backupDir(context), "$PREFIX${stamp.format(now)}$SUFFIX")
 
     fun listBackups(context: Context): List<File> =
-        backupDir(context).listFiles { f -> f.name.startsWith(PREFIX) && f.name.endsWith(SUFFIX) }
+        backupDir(context).listFiles { f ->
+            (f.name.startsWith(PREFIX) || f.name.startsWith(LEGACY_PREFIX)) && f.name.endsWith(SUFFIX)
+        }
             ?.sortedByDescending { it.lastModified() }
             ?: emptyList()
 
