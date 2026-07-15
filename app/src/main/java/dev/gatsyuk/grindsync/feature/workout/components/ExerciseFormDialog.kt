@@ -2,10 +2,13 @@ package dev.gatsyuk.grindsync.feature.workout.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -22,47 +25,83 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import dev.gatsyuk.grindsync.core.database.dao.ExerciseWithMuscles
 import dev.gatsyuk.grindsync.core.database.entity.MuscleGroupEntity
 import dev.gatsyuk.grindsync.core.model.ExerciseType
 import dev.gatsyuk.grindsync.core.model.Muscle
+import dev.gatsyuk.grindsync.core.model.MuscleRole
 import dev.gatsyuk.grindsync.core.ui.exerciseTypeLabel
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
+
+/** What the form hands back on save. */
+data class ExerciseFormResult(
+    val name: String,
+    val muscleGroupId: Long,
+    val type: ExerciseType,
+    val unilateral: Boolean,
+    val defaultWarmupSets: Int,
+    val primary: Set<Muscle>,
+    val secondary: Set<Muscle>,
+)
+
+private val muscleSetSaver = listSaver<Set<Muscle>, String>(
+    save = { set -> set.map { it.name } },
+    restore = { names -> names.map(Muscle::valueOf).toSet() },
+)
 
 /**
- * Custom exercise form. Muscle mapping is captured HERE, at creation time —
- * the ExerciseMuscle join must never lag the catalog (SPEC §7.7).
+ * Create OR edit an exercise. All state is rememberSaveable, so rotation
+ * mid-typing keeps every field (user bug report). Muscle mapping is captured
+ * here so the ExerciseMuscle join never lags the catalog (SPEC §7.7).
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ExerciseFormDialog(
     muscleGroups: List<MuscleGroupEntity>,
+    existing: ExerciseWithMuscles? = null,
+    initialName: String = "",
     onDismiss: () -> Unit,
-    onCreate: (
-        name: String,
-        muscleGroupId: Long,
-        type: ExerciseType,
-        unilateral: Boolean,
-        primary: Set<Muscle>,
-        secondary: Set<Muscle>,
-    ) -> Unit,
+    onSave: (ExerciseFormResult) -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
-    var group by remember { mutableStateOf<MuscleGroupEntity?>(null) }
-    var type by remember { mutableStateOf(ExerciseType.STRENGTH_WEIGHT_REPS) }
-    var unilateral by remember { mutableStateOf(false) }
-    var primary by remember { mutableStateOf(setOf<Muscle>()) }
-    var secondary by remember { mutableStateOf(setOf<Muscle>()) }
+    val isEdit = existing != null
+    var name by rememberSaveable { mutableStateOf(existing?.exercise?.name ?: initialName) }
+    var groupId by rememberSaveable { mutableStateOf(existing?.exercise?.muscleGroupId ?: -1L) }
+    var typeName by rememberSaveable {
+        mutableStateOf((existing?.exercise?.exerciseType ?: ExerciseType.STRENGTH_WEIGHT_REPS).name)
+    }
+    var unilateral by rememberSaveable { mutableStateOf(existing?.exercise?.isUnilateral ?: false) }
+    var warmups by rememberSaveable {
+        mutableStateOf((existing?.exercise?.defaultWarmupSets ?: 0).toString())
+    }
+    var primary by rememberSaveable(stateSaver = muscleSetSaver) {
+        mutableStateOf(
+            existing?.muscles?.filter { it.role == MuscleRole.PRIMARY }?.map { it.muscle }?.toSet()
+                ?: emptySet(),
+        )
+    }
+    var secondary by rememberSaveable(stateSaver = muscleSetSaver) {
+        mutableStateOf(
+            existing?.muscles?.filter { it.role == MuscleRole.SECONDARY }?.map { it.muscle }?.toSet()
+                ?: emptySet(),
+        )
+    }
     var groupMenu by remember { mutableStateOf(false) }
     var typeMenu by remember { mutableStateOf(false) }
 
+    val type = ExerciseType.valueOf(typeName)
+    val group = muscleGroups.firstOrNull { it.id == groupId }
+    val warmupCount = warmups.toIntOrNull()
+    val valid = name.isNotBlank() && group != null && warmupCount != null && warmupCount >= 0
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New exercise") },
+        title = { Text(if (isEdit) "Edit exercise" else "New exercise") },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -89,7 +128,7 @@ fun ExerciseFormDialog(
                         muscleGroups.forEach { g ->
                             DropdownMenuItem(
                                 text = { Text(g.name) },
-                                onClick = { group = g; groupMenu = false },
+                                onClick = { groupId = g.id; groupMenu = false },
                             )
                         }
                     }
@@ -108,11 +147,21 @@ fun ExerciseFormDialog(
                         ExerciseType.entries.forEach { t ->
                             DropdownMenuItem(
                                 text = { Text(exerciseTypeLabel(t)) },
-                                onClick = { type = t; typeMenu = false },
+                                onClick = { typeName = t.name; typeMenu = false },
                             )
                         }
                     }
                 }
+
+                OutlinedTextField(
+                    value = warmups,
+                    onValueChange = { warmups = it },
+                    label = { Text("Warmup sets") },
+                    supportingText = { Text("Pre-marked as W when you start training this exercise.") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(checked = unilateral, onCheckedChange = { unilateral = it })
@@ -142,11 +191,22 @@ fun ExerciseFormDialog(
             }
         },
         confirmButton = {
-            val g = group
             TextButton(
-                enabled = name.isNotBlank() && g != null,
-                onClick = { onCreate(name, g!!.id, type, unilateral, primary, secondary) },
-            ) { Text("Create") }
+                enabled = valid,
+                onClick = {
+                    onSave(
+                        ExerciseFormResult(
+                            name = name.trim(),
+                            muscleGroupId = group!!.id,
+                            type = type,
+                            unilateral = unilateral,
+                            defaultWarmupSets = warmupCount ?: 0,
+                            primary = primary,
+                            secondary = secondary,
+                        ),
+                    )
+                },
+            ) { Text(if (isEdit) "Save" else "Create") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )

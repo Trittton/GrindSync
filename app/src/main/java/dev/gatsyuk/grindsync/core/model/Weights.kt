@@ -32,6 +32,19 @@ object Weights {
     }
 }
 
+/**
+ * Sessions longer than this were almost certainly left running by accident
+ * (user feedback) — their duration is hidden and excluded from stats.
+ */
+const val MAX_TRACKED_DURATION_MILLIS = 2 * 60 * 60 * 1000L
+
+/** Duration between the timestamps, or null if absent/implausible (>2 h). */
+fun trackedDurationMillis(startMillis: Long?, endMillis: Long?): Long? {
+    if (startMillis == null || endMillis == null) return null
+    val duration = endMillis - startMillis
+    return duration.takeIf { it in 0..MAX_TRACKED_DURATION_MILLIS }
+}
+
 fun formatDurationMillis(millis: Long): String {
     val totalMinutes = millis / 60_000
     val h = totalMinutes / 60

@@ -39,7 +39,7 @@ class WorkoutFlowTest {
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
         ).build()
-        repo = WorkoutRepository(db.workoutDao(), db.routineDao())
+        repo = WorkoutRepository(db.workoutDao(), db.routineDao(), db.exerciseDao())
     }
 
     @After

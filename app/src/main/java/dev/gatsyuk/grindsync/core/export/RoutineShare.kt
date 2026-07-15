@@ -27,6 +27,7 @@ data class SharedRoutineExercise(
     val category: String,
     val exerciseType: String,
     val isUnilateral: Boolean = false,
+    val defaultWarmupSets: Int = 0,
     val muscles: List<SharedMuscle> = emptyList(),
     val targetSets: Int,
     val repMin: Int? = null,
@@ -48,7 +49,7 @@ object RoutineShare {
         val parsed = runCatching { json.decodeFromString(SharedRoutine.serializer(), text.trim()) }
             .getOrElse { throw IllegalArgumentException("That doesn't look like a shared GrindSync routine.") }
         require(parsed.grindsyncRoutine in 1..SharedRoutine.FORMAT_VERSION) {
-            "This routine was shared from a newer GrindSync version — update the app."
+            "This routine was shared from a newer GrindSync version. Update the app."
         }
         require(parsed.exercises.isNotEmpty()) { "The shared routine has no exercises." }
         return parsed

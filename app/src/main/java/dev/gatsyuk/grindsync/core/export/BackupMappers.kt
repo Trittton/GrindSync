@@ -26,10 +26,12 @@ import java.time.LocalDate
 fun MuscleGroupEntity.toDto() = MuscleGroupDto(id, name, displayOrder)
 fun MuscleGroupDto.toEntity() = MuscleGroupEntity(id, name, displayOrder)
 
-fun ExerciseEntity.toDto() =
-    ExerciseDto(id, name, muscleGroupId, exerciseType.name, isUnilateral, isCustom, isArchived)
+fun ExerciseEntity.toDto() = ExerciseDto(
+    id, name, muscleGroupId, exerciseType.name, isUnilateral, isCustom, isArchived, defaultWarmupSets,
+)
 fun ExerciseDto.toEntity() = ExerciseEntity(
     id, name, muscleGroupId, ExerciseType.valueOf(exerciseType), isUnilateral, isCustom, isArchived,
+    defaultWarmupSets,
 )
 
 fun ExerciseMuscleEntity.toDto() =

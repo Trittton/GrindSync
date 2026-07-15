@@ -200,7 +200,7 @@ private fun RankHeroCard(game: RankEngine.GamificationState, onOpenMuscleRanks: 
                         color = MaterialTheme.colorScheme.primary)
                     Text(
                         game.glPoints?.let { "IPF GL %.1f".format(it) }
-                            ?: "No data for ranking yet — log squat, bench & deadlift " +
+                            ?: "No data for ranking yet. Log squat, bench & deadlift " +
                             "and set sex + bodyweight in Settings",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -231,7 +231,7 @@ private fun RankHeroCard(game: RankEngine.GamificationState, onOpenMuscleRanks: 
             Spacer(Modifier.height(10.dp))
             Card(onClick = onOpenMuscleRanks, modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Rank Map — per-muscle ranks", style = MaterialTheme.typography.bodyMedium,
+                    Text("Rank Map: per-muscle ranks", style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f))
                     Text("→", color = MaterialTheme.colorScheme.primary)
                 }
@@ -247,16 +247,16 @@ private fun StatSheetRow(game: RankEngine.GamificationState) {
             Row(Modifier.fillMaxWidth()) {
                 StatCell(
                     "STR",
-                    game.statSheet.strengthGl?.let { "%.1f".format(it) } ?: "—",
+                    game.statSheet.strengthGl?.let { "%.1f".format(it) } ?: "-",
                     Modifier.weight(1f),
                 )
                 StatCell("END", game.statSheet.enduranceReps28d.toString(), Modifier.weight(1f))
                 StatCell("CON", "${game.statSheet.consistencyPct}%", Modifier.weight(1f))
             }
             Text(
-                "STR — IPF GL points from your best squat/bench/deadlift · " +
-                    "END — working reps in the last 28 days · " +
-                    "CON — share of the last 8 weeks with ≥2 sessions",
+                "STR = IPF GL points from your best squat/bench/deadlift · " +
+                    "END = working reps in the last 28 days · " +
+                    "CON = share of the last 8 weeks with 2+ sessions",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),

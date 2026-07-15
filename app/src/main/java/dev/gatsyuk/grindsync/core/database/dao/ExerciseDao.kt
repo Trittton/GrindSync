@@ -29,6 +29,12 @@ interface ExerciseDao {
     @Insert
     suspend fun insertExercise(exercise: ExerciseEntity): Long
 
+    @androidx.room.Update
+    suspend fun updateExercise(exercise: ExerciseEntity)
+
+    @Query("DELETE FROM exercise_muscle WHERE exercise_id = :exerciseId")
+    suspend fun deleteMusclesFor(exerciseId: Long)
+
     @Insert
     suspend fun insertExerciseMuscles(mappings: List<ExerciseMuscleEntity>)
 

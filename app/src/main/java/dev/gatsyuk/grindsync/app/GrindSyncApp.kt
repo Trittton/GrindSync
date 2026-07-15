@@ -217,7 +217,7 @@ private fun ResumeWorkoutBar(
             )
             Spacer(Modifier.width(12.dp))
             Text(
-                "Workout in progress — ${workout.name}",
+                "Workout in progress: ${workout.name}",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )

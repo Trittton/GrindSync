@@ -97,7 +97,7 @@ class LiveWorkoutViewModel @Inject constructor(
         val current = content.value ?: return null
         val unit = weightUnit.value
         val sb = StringBuilder()
-        sb.appendLine("${current.workout.name} — ${current.workout.date}")
+        sb.appendLine("${current.workout.name} · ${current.workout.date}")
         current.exercises.sortedBy { it.workoutExercise.position }.forEach { entry ->
             if (entry.sets.isEmpty()) return@forEach
             val sets = entry.sets.sortedBy { it.position }.joinToString { set ->
@@ -107,7 +107,7 @@ class LiveWorkoutViewModel @Inject constructor(
                     set.timeSeconds?.let { append(formatSeconds(it)) }
                     set.distanceMeters?.let { append("${Weights.format(it)}m") }
                     set.kcal?.let { append("${it}kcal") }
-                    if (isEmpty()) append("—")
+                    if (isEmpty()) append("-")
                 }
             }
             sb.appendLine("${entry.exercise.name}: $sets")

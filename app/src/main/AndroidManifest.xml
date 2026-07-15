@@ -5,6 +5,8 @@
     <!-- Used ONLY for explicit Open Food Facts searches (NFR-8); everything
          else works fully offline and no data ever leaves the device. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Ongoing "workout in progress" notification only. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".GrindSyncApplication"

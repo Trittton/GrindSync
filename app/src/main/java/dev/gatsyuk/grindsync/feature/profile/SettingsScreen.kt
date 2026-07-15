@@ -133,7 +133,7 @@ class SettingsViewModel @Inject constructor(
             }
             onResult(
                 result.fold(
-                    onSuccess = { DataOpResult.Success("Import complete — all data replaced.") },
+                    onSuccess = { DataOpResult.Success("Import complete. All data replaced.") },
                     onFailure = { DataOpResult.Failure("Import failed: ${it.message}") },
                 ),
             )
@@ -198,7 +198,7 @@ fun SettingsScreen(
             Column {
                 Text("Weight unit", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Display only — all data is stored in kg.",
+                    "Display only. All data is stored in kg.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -264,7 +264,7 @@ fun SettingsScreen(
                             viewModel.setBodyweightFallbackKg(Weights.displayToKg(parsed, weightUnit))
                         }
                     },
-                    label = { Text("Bodyweight (${Weights.unitLabel(weightUnit)}) — fallback") },
+                    label = { Text("Bodyweight (${Weights.unitLabel(weightUnit)}), fallback") },
                     supportingText = { Text("A bodyweight logged on a workout takes priority.") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -289,7 +289,7 @@ fun SettingsScreen(
             HorizontalDivider()
 
             Column {
-                Text("Data — export & import", style = MaterialTheme.typography.titleMedium)
+                Text("Data: export & import", style = MaterialTheme.typography.titleMedium)
                 Text(
                     "Your data is yours. JSON is a full backup (and the way to move data " +
                         "between phones or share with friends); CSV is for spreadsheets.",

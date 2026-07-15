@@ -24,8 +24,22 @@ class GrindSyncApplication : Application(), Configuration.Provider {
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    @Inject lateinit var workoutDao: dev.gatsyuk.grindsync.core.database.dao.WorkoutDao
+
     override fun onCreate() {
         super.onCreate()
         applicationScope.launch { seeder.seedIfEmpty() }
+        // Ongoing notification mirrors the in-progress workout (user feature).
+        applicationScope.launch {
+            workoutDao.observeInProgressWorkout().collect { live ->
+                if (live != null) {
+                    dev.gatsyuk.grindsync.core.ui.WorkoutNotifier.showActiveWorkout(
+                        this@GrindSyncApplication, live.name,
+                    )
+                } else {
+                    dev.gatsyuk.grindsync.core.ui.WorkoutNotifier.cancel(this@GrindSyncApplication)
+                }
+            }
+        }
     }
 }

@@ -45,6 +45,7 @@ data class ExerciseDto(
     val isUnilateral: Boolean,
     val isCustom: Boolean,
     val isArchived: Boolean,
+    val defaultWarmupSets: Int = 0, // defaulted so pre-v4 backups import cleanly
 )
 
 @Serializable

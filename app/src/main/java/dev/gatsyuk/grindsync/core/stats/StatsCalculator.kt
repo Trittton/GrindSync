@@ -5,6 +5,7 @@ import dev.gatsyuk.grindsync.core.database.dao.WorkoutWithContent
 import dev.gatsyuk.grindsync.core.database.entity.SetEntryEntity
 import dev.gatsyuk.grindsync.core.model.ExerciseType
 import dev.gatsyuk.grindsync.core.model.SetKind
+import dev.gatsyuk.grindsync.core.model.trackedDurationMillis
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
@@ -63,9 +64,11 @@ object StatsCalculator {
         var sets = 0
         var reps = 0
         history.forEach { workout ->
-            val start = workout.workout.startTimeEpochMillis
-            val end = workout.workout.endTimeEpochMillis
-            if (start != null && end != null && end > start) duration += end - start
+            // >2h sessions were left running by accident; excluded (user rule).
+            trackedDurationMillis(
+                workout.workout.startTimeEpochMillis,
+                workout.workout.endTimeEpochMillis,
+            )?.let { duration += it }
             workout.exercises.forEach { entry ->
                 entry.sets.forEach { set ->
                     // Untouched prefab rows (no measurements at all) don't count.

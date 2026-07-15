@@ -60,6 +60,7 @@ import dev.gatsyuk.grindsync.core.model.WeightUnit
 import dev.gatsyuk.grindsync.core.model.Weights
 import dev.gatsyuk.grindsync.core.model.formatDurationMillis
 import dev.gatsyuk.grindsync.core.model.formatSeconds
+import dev.gatsyuk.grindsync.core.model.trackedDurationMillis
 import dev.gatsyuk.grindsync.core.ui.ActionBottomSheet
 import dev.gatsyuk.grindsync.core.ui.SheetAction
 import dev.gatsyuk.grindsync.core.ui.exerciseTypeLabel
@@ -85,7 +86,8 @@ fun LiveWorkoutScreen(
     val restRemaining by viewModel.restRemaining.collectAsStateWithLifecycle()
     val restDefault by viewModel.restDefaultSeconds.collectAsStateWithLifecycle()
 
-    var showPicker by remember { mutableStateOf(false) }
+    // rememberSaveable: rotation mid-flow must not close the add-exercise sheet.
+    var showPicker by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var showRestDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showWorkoutActions by remember { mutableStateOf(false) }
@@ -169,12 +171,38 @@ fun LiveWorkoutScreen(
         }
     }
 
+    // Hosted at screen level (not in the sheet) so rotation can't destroy it.
+    var newExercisePrefill by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+    val catalogViewModel: dev.gatsyuk.grindsync.feature.workout.components.ExerciseCatalogViewModel =
+        hiltViewModel()
+
     if (showPicker) {
         ExercisePickerSheet(
             onDismiss = { showPicker = false },
             onPick = { id ->
                 showPicker = false
                 viewModel.addExercise(id)
+            },
+            onCreateNew = { query ->
+                showPicker = false
+                newExercisePrefill = query
+            },
+        )
+    }
+
+    newExercisePrefill?.let { prefill ->
+        val groups by catalogViewModel.muscleGroups.collectAsStateWithLifecycle()
+        dev.gatsyuk.grindsync.feature.workout.components.ExerciseFormDialog(
+            muscleGroups = groups,
+            initialName = prefill,
+            onDismiss = { newExercisePrefill = null },
+            onSave = { form ->
+                catalogViewModel.createCustomExercise(form) { id ->
+                    newExercisePrefill = null
+                    viewModel.addExercise(id)
+                }
             },
         )
     }
@@ -221,7 +249,7 @@ fun LiveWorkoutScreen(
     if (savedAsRoutine) {
         AlertDialog(
             onDismissRequest = { savedAsRoutine = false },
-            text = { Text("Saved as a routine — find it under Train → Routines.") },
+            text = { Text("Saved as a routine. Find it under Train / Routines.") },
             confirmButton = { TextButton(onClick = { savedAsRoutine = false }) { Text("OK") } },
         )
     }
@@ -276,9 +304,9 @@ private fun WorkoutHeader(
                     modifier = Modifier.weight(1f),
                 )
                 if (!inProgress) {
-                    val duration = workout.startTimeEpochMillis?.let { s ->
-                        workout.endTimeEpochMillis?.let { e -> formatDurationMillis(e - s) }
-                    }
+                    val duration = trackedDurationMillis(
+                        workout.startTimeEpochMillis, workout.endTimeEpochMillis,
+                    )?.let { formatDurationMillis(it) }
                     Text(
                         "Completed${duration?.let { " · $it" } ?: ""}",
                         style = MaterialTheme.typography.labelMedium,

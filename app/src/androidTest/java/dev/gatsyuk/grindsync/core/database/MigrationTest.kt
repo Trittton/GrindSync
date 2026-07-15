@@ -25,6 +25,26 @@ class MigrationTest {
     )
 
     @Test
+    fun migrate3To4_addsDefaultWarmupSets() {
+        helper.createDatabase(dbName, 3).apply {
+            execSQL("INSERT INTO muscle_group (id, name, display_order) VALUES (1, 'Chest', 0)")
+            execSQL(
+                "INSERT INTO exercise (id, name, muscle_group_id, exercise_type, is_unilateral, is_custom, is_archived) " +
+                    "VALUES (10, 'Barbell Bench Press', 1, 'STRENGTH_WEIGHT_REPS', 0, 0, 0)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 4, true, Migrations.MIGRATION_3_4)
+
+        db.query("SELECT name, default_warmup_sets FROM exercise WHERE id = 10").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Barbell Bench Press", cursor.getString(0))
+            assertEquals(0, cursor.getInt(1)) // default: no auto warmups
+        }
+    }
+
+    @Test
     fun migrate2To3_addsNutritionTablesAndKeepsWorkoutData() {
         helper.createDatabase(dbName, 2).apply {
             execSQL("INSERT INTO muscle_group (id, name, display_order) VALUES (1, 'Chest', 0)")

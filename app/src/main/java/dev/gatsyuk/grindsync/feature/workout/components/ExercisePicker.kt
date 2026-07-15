@@ -53,44 +53,47 @@ class ExerciseCatalogViewModel @Inject constructor(
     val muscleGroups = exerciseDao.observeMuscleGroups()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun createCustomExercise(
-        name: String,
-        muscleGroupId: Long,
-        type: ExerciseType,
-        unilateral: Boolean,
-        primary: Set<Muscle>,
-        secondary: Set<Muscle>,
-        onCreated: (Long) -> Unit,
-    ) = viewModelScope.launch {
-        val id = exerciseDao.insertExercise(
-            ExerciseEntity(
-                name = name.trim(),
-                muscleGroupId = muscleGroupId,
-                exerciseType = type,
-                isUnilateral = unilateral,
-                isCustom = true,
-            ),
-        )
-        exerciseDao.insertExerciseMuscles(
-            primary.map { ExerciseMuscleEntity(id, it, MuscleRole.PRIMARY, ContributionWeights.PRIMARY) } +
-                secondary.map { ExerciseMuscleEntity(id, it, MuscleRole.SECONDARY, ContributionWeights.SECONDARY) },
-        )
-        onCreated(id)
-    }
+    fun createCustomExercise(form: ExerciseFormResult, onCreated: (Long) -> Unit) =
+        viewModelScope.launch {
+            val id = exerciseDao.insertExercise(
+                ExerciseEntity(
+                    name = form.name,
+                    muscleGroupId = form.muscleGroupId,
+                    exerciseType = form.type,
+                    isUnilateral = form.unilateral,
+                    isCustom = true,
+                    defaultWarmupSets = form.defaultWarmupSets,
+                ),
+            )
+            exerciseDao.insertExerciseMuscles(formMuscles(id, form))
+            onCreated(id)
+        }
 }
 
-/** Searchable catalog sheet; "New exercise" opens the custom-exercise form. */
+internal fun formMuscles(exerciseId: Long, form: ExerciseFormResult): List<ExerciseMuscleEntity> =
+    form.primary.map {
+        ExerciseMuscleEntity(exerciseId, it, MuscleRole.PRIMARY, ContributionWeights.PRIMARY)
+    } + form.secondary.map {
+        ExerciseMuscleEntity(exerciseId, it, MuscleRole.SECONDARY, ContributionWeights.SECONDARY)
+    }
+
+/**
+ * Searchable catalog sheet. "New exercise" hands the query back to the CALLER
+ * via [onCreateNew] — the form dialog must be hosted at screen level, because
+ * a modal sheet does not survive rotation and would take the form (and the
+ * user's typing) down with it (bug report).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExercisePickerSheet(
     onDismiss: () -> Unit,
     onPick: (Long) -> Unit,
+    onCreateNew: (String) -> Unit,
     viewModel: ExerciseCatalogViewModel = hiltViewModel(),
 ) {
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
-    val groups by viewModel.muscleGroups.collectAsStateWithLifecycle()
-    var query by remember { mutableStateOf("") }
-    var showForm by remember { mutableStateOf(false) }
+    // rememberSaveable: rotation mid-search must not reset the flow (bug report).
+    var query by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(horizontal = 16.dp)) {
@@ -105,7 +108,8 @@ fun ExercisePickerSheet(
             ListItem(
                 headlineContent = { Text("New exercise") },
                 leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
-                modifier = Modifier.clickable { showForm = true },
+                // Typed a search with no match? It becomes the new exercise's name.
+                modifier = Modifier.clickable { onCreateNew(query) },
             )
             val filtered = exercises.filter {
                 query.isBlank() || it.exercise.name.contains(query, ignoreCase = true)
@@ -127,16 +131,4 @@ fun ExercisePickerSheet(
         }
     }
 
-    if (showForm) {
-        ExerciseFormDialog(
-            muscleGroups = groups,
-            onDismiss = { showForm = false },
-            onCreate = { name, groupId, type, unilateral, primary, secondary ->
-                viewModel.createCustomExercise(name, groupId, type, unilateral, primary, secondary) {
-                    showForm = false
-                    onPick(it)
-                }
-            },
-        )
-    }
 }

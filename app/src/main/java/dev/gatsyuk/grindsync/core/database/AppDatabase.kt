@@ -22,7 +22,7 @@ import dev.gatsyuk.grindsync.core.database.entity.WorkoutEntity
 import dev.gatsyuk.grindsync.core.database.entity.WorkoutExerciseEntity
 
 @Database(
-    version = 3,
+    version = 4,
     exportSchema = true,
     entities = [
         MuscleGroupEntity::class,

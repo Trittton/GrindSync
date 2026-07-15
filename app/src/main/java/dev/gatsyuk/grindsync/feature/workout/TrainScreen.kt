@@ -44,6 +44,7 @@ import dev.gatsyuk.grindsync.core.database.dao.RoutineWithExercises
 import dev.gatsyuk.grindsync.core.database.dao.WorkoutDao
 import dev.gatsyuk.grindsync.core.database.dao.WorkoutWithContent
 import dev.gatsyuk.grindsync.core.model.formatDurationMillis
+import dev.gatsyuk.grindsync.core.model.trackedDurationMillis
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -188,11 +189,10 @@ private fun HistoryList(history: List<WorkoutWithContent>, onOpen: (Long) -> Uni
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text(entry.workout.name, style = MaterialTheme.typography.titleMedium)
-                            val duration = entry.workout.startTimeEpochMillis?.let { start ->
-                                entry.workout.endTimeEpochMillis?.let { end ->
-                                    formatDurationMillis(end - start)
-                                }
-                            }
+                            val duration = trackedDurationMillis(
+                                entry.workout.startTimeEpochMillis,
+                                entry.workout.endTimeEpochMillis,
+                            )?.let { formatDurationMillis(it) }
                             val setCount = entry.exercises.sumOf { it.sets.size }
                             Text(
                                 listOfNotNull(duration, "${entry.exercises.size} exercises", "$setCount sets")
@@ -233,12 +233,12 @@ private fun RoutineList(
                     Text(routine.routine.name, style = MaterialTheme.typography.titleMedium)
                     routine.exercises.sortedBy { it.position }.forEach { entry ->
                         val range = if (entry.repMin != null && entry.repMax != null) {
-                            "${entry.targetSets} × ${entry.repMin}–${entry.repMax}"
+                            "${entry.targetSets} × ${entry.repMin}-${entry.repMax}"
                         } else {
                             "${entry.targetSets} sets"
                         }
                         Text(
-                            "${exerciseNames[entry.exerciseId] ?: "?"} — $range",
+                            "${exerciseNames[entry.exerciseId] ?: "?"} · $range",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

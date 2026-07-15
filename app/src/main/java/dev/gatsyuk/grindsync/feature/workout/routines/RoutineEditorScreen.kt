@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -63,7 +64,10 @@ import dev.gatsyuk.grindsync.core.model.ExerciseType
 import dev.gatsyuk.grindsync.core.model.Muscle
 import dev.gatsyuk.grindsync.core.model.MuscleRole
 import dev.gatsyuk.grindsync.core.model.TargetMode
+import dev.gatsyuk.grindsync.feature.workout.components.ExerciseFormDialog
+import dev.gatsyuk.grindsync.feature.workout.components.ExerciseFormResult
 import dev.gatsyuk.grindsync.feature.workout.components.ExercisePickerSheet
+import dev.gatsyuk.grindsync.feature.workout.components.formMuscles
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -90,10 +94,13 @@ class RoutineEditorViewModel @Inject constructor(
     private val routineId: Long = savedStateHandle["routineId"] ?: -1L
     val isNew get() = routineId < 0
 
-    private val catalog = exerciseDao.observeExercisesWithMuscles()
+    val catalog = exerciseDao.observeExercisesWithMuscles()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    private val groupNames = exerciseDao.observeMuscleGroups()
+    val muscleGroups = exerciseDao.observeMuscleGroups()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    private val groupNames = muscleGroups
         .map { list -> list.associate { it.id to it.name } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
@@ -178,6 +185,22 @@ class RoutineEditorViewModel @Inject constructor(
     fun delete(onDone: () -> Unit) = viewModelScope.launch {
         if (!isNew) routineDao.deleteRoutineById(routineId)
         onDone()
+    }
+
+    /** Edit an exercise's DEFINITION (name/type/muscles/warmups) in place. */
+    fun updateExercise(exerciseId: Long, form: ExerciseFormResult) = viewModelScope.launch {
+        val current = exerciseDao.getById(exerciseId) ?: return@launch
+        exerciseDao.updateExercise(
+            current.copy(
+                name = form.name,
+                muscleGroupId = form.muscleGroupId,
+                exerciseType = form.type,
+                isUnilateral = form.unilateral,
+                defaultWarmupSets = form.defaultWarmupSets,
+            ),
+        )
+        exerciseDao.deleteMusclesFor(exerciseId)
+        exerciseDao.insertExerciseMuscles(formMuscles(exerciseId, form))
     }
 
     /** Current editor state as shareable JSON (null until exercises resolve). */
@@ -273,10 +296,16 @@ fun RoutineEditorScreen(
     val notes by viewModel.notes.collectAsStateWithLifecycle()
     val entries by viewModel.entries.collectAsStateWithLifecycle()
     val exerciseNames by viewModel.exerciseNames.collectAsStateWithLifecycle()
-    var showPicker by remember { mutableStateOf(false) }
+    // rememberSaveable: survive rotation mid-flow (user bug report).
+    var showPicker by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
-    var showImportDialog by remember { mutableStateOf(false) }
+    var showImportDialog by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var importError by remember { mutableStateOf<String?>(null) }
+    var editExerciseId by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf<Long?>(null)
+    }
+    val catalogList by viewModel.catalog.collectAsStateWithLifecycle()
+    val groupEntities by viewModel.muscleGroups.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
@@ -356,6 +385,7 @@ fun RoutineEditorScreen(
                     onRemove = { viewModel.remove(index) },
                     onMoveUp = { viewModel.move(index, -1) },
                     onMoveDown = { viewModel.move(index, +1) },
+                    onEditExercise = { editExerciseId = entry.exerciseId },
                 )
             }
 
@@ -372,6 +402,13 @@ fun RoutineEditorScreen(
         }
     }
 
+    // Hosted at screen level (not in the sheet) so rotation can't destroy it.
+    var newExercisePrefill by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+    val catalogViewModel: dev.gatsyuk.grindsync.feature.workout.components.ExerciseCatalogViewModel =
+        hiltViewModel()
+
     if (showPicker) {
         ExercisePickerSheet(
             onDismiss = { showPicker = false },
@@ -379,7 +416,40 @@ fun RoutineEditorScreen(
                 showPicker = false
                 viewModel.addExercise(id)
             },
+            onCreateNew = { query ->
+                showPicker = false
+                newExercisePrefill = query
+            },
         )
+    }
+
+    newExercisePrefill?.let { prefill ->
+        ExerciseFormDialog(
+            muscleGroups = groupEntities,
+            initialName = prefill,
+            onDismiss = { newExercisePrefill = null },
+            onSave = { form ->
+                catalogViewModel.createCustomExercise(form) { id ->
+                    newExercisePrefill = null
+                    viewModel.addExercise(id)
+                }
+            },
+        )
+    }
+
+    editExerciseId?.let { exerciseId ->
+        val existing = catalogList.firstOrNull { it.exercise.id == exerciseId }
+        if (existing != null) {
+            ExerciseFormDialog(
+                muscleGroups = groupEntities,
+                existing = existing,
+                onDismiss = { editExerciseId = null },
+                onSave = { form ->
+                    viewModel.updateExercise(exerciseId, form)
+                    editExerciseId = null
+                },
+            )
+        }
     }
 
     if (showDeleteConfirm) {
@@ -456,6 +526,7 @@ private fun RoutineExerciseRow(
     onRemove: () -> Unit,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
+    onEditExercise: () -> Unit,
 ) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(10.dp)) {
@@ -465,6 +536,9 @@ private fun RoutineExerciseRow(
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f),
                 )
+                IconButton(onClick = onEditExercise) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit exercise")
+                }
                 IconButton(onClick = onMoveUp) {
                     Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move up")
                 }

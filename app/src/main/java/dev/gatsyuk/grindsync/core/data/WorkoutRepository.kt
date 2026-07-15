@@ -1,5 +1,6 @@
 package dev.gatsyuk.grindsync.core.data
 
+import dev.gatsyuk.grindsync.core.database.dao.ExerciseDao
 import dev.gatsyuk.grindsync.core.database.dao.RoutineDao
 import dev.gatsyuk.grindsync.core.database.dao.WorkoutDao
 import dev.gatsyuk.grindsync.core.database.entity.RoutineEntity
@@ -23,6 +24,7 @@ import javax.inject.Singleton
 class WorkoutRepository @Inject constructor(
     private val workoutDao: WorkoutDao,
     private val routineDao: RoutineDao,
+    private val exerciseDao: ExerciseDao,
 ) {
 
     suspend fun startEmptyWorkout(name: String = "Workout"): Long =
@@ -137,22 +139,43 @@ class WorkoutRepository @Inject constructor(
         return workoutExerciseId
     }
 
-    private suspend fun prefillSets(workoutExerciseId: Long, exerciseId: Long, count: Int) {
+    private suspend fun prefillSets(workoutExerciseId: Long, exerciseId: Long, targetSets: Int) {
         val last = workoutDao.getLastPerformedSets(exerciseId)
-        repeat(count.coerceAtLeast(0)) { index ->
-            val template = last.getOrNull(index) ?: last.lastOrNull()
+        if (last.isNotEmpty()) {
+            // History exists: repeat EXACTLY what was done last time (count,
+            // values, warmup markers, notes) — the "same as previously" rule.
+            last.sortedBy { it.position }.forEachIndexed { index, template ->
+                workoutDao.insertSetEntry(
+                    template.copy(
+                        id = 0,
+                        workoutExerciseId = workoutExerciseId,
+                        position = index,
+                        isPr = false,
+                    ),
+                )
+            }
+            return
+        }
+        // Fresh exercise: the exercise's own default warmup count pre-marks W
+        // rows (user feedback: no manual W-marking every session), then the
+        // routine's working-set target.
+        val warmups = exerciseDao.getById(exerciseId)?.defaultWarmupSets ?: 0
+        var position = 0
+        repeat(warmups.coerceAtLeast(0)) {
             workoutDao.insertSetEntry(
                 SetEntryEntity(
                     workoutExerciseId = workoutExerciseId,
-                    position = index,
-                    setKind = template?.setKind ?: SetKind.WORKING,
-                    weightKg = template?.weightKg,
-                    reps = template?.reps,
-                    timeSeconds = template?.timeSeconds,
-                    distanceMeters = template?.distanceMeters,
-                    kcal = template?.kcal,
-                    // Set notes inherit from the same set last session (latest wins).
-                    notes = template?.notes,
+                    position = position++,
+                    setKind = SetKind.WARMUP,
+                ),
+            )
+        }
+        repeat(targetSets.coerceAtLeast(0)) {
+            workoutDao.insertSetEntry(
+                SetEntryEntity(
+                    workoutExerciseId = workoutExerciseId,
+                    position = position++,
+                    setKind = SetKind.WORKING,
                 ),
             )
         }

@@ -155,7 +155,7 @@ fun AddFoodSheet(
                 if (allFoods.isEmpty() && offState is OffSearchState.Idle) {
                     item {
                         Text(
-                            "No foods yet — create one or search online.",
+                            "No foods yet. Create one or search online.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 12.dp),

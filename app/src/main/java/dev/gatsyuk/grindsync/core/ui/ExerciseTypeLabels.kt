@@ -11,7 +11,7 @@ fun exerciseTypeLabel(type: ExerciseType): String = when (type) {
     ExerciseType.BODYWEIGHT_WEIGHT_REPS -> "Bodyweight: +weight × reps"
     ExerciseType.BODYWEIGHT_REPS -> "Bodyweight: reps"
     ExerciseType.BODYWEIGHT_TIME -> "Bodyweight: time"
-    ExerciseType.ASSISTED_WEIGHT_REPS -> "Assisted: −weight × reps"
+    ExerciseType.ASSISTED_WEIGHT_REPS -> "Assisted: -weight × reps"
     ExerciseType.CARDIO_TIME_DISTANCE_KCAL -> "Cardio: time / distance / kcal"
     ExerciseType.OTHER_NOTES -> "Other: notes only"
 }

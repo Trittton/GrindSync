@@ -43,7 +43,7 @@ class ExportImportRoundTripTest {
     fun export_wipe_import_reproducesDatabase() = runTest {
         // Seed catalog + a real workout + nutrition, so all tables are exercised.
         DatabaseSeeder(db).seedIfEmpty()
-        val workoutRepo = WorkoutRepository(db.workoutDao(), db.routineDao())
+        val workoutRepo = WorkoutRepository(db.workoutDao(), db.routineDao(), db.exerciseDao())
         val routine = db.routineDao().getRoutinesWithExercises().first()
         val workoutId = workoutRepo.startFromRoutine(routine.routine.id)
         val live = db.workoutDao().observeWorkoutWithContent(workoutId)

@@ -125,10 +125,10 @@ fun MuscleRanksScreen(
         ) {
             item {
                 Text(
-                    "Strength rank per muscle — weighted average of the normalized " +
+                    "Strength rank per muscle: weighted average of the normalized " +
                         "best lifts training it (primary ×1.0, secondary ×0.4). " +
-                        "Ladder: E− up to SSS+ (all-time world-record level). " +
-                        "Dimmed E− = no ranking data yet. Tap a muscle for its lifts.",
+                        "Ladder: E- up to SSS+ (all-time world-record level). " +
+                        "Dimmed E- means no ranking data yet. Tap a muscle for its lifts.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 4.dp),

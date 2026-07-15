@@ -38,6 +38,9 @@ data class ExerciseEntity(
     @ColumnInfo(name = "is_custom") val isCustom: Boolean = false,
     // Added in schema v2 (MIGRATION_1_2): archive instead of delete, so history survives.
     @ColumnInfo(name = "is_archived", defaultValue = "0") val isArchived: Boolean = false,
+    // Added in v4: warmup rows to pre-mark when starting without history
+    // (user feedback: stop marking W by hand every session).
+    @ColumnInfo(name = "default_warmup_sets", defaultValue = "0") val defaultWarmupSets: Int = 0,
 )
 
 /**
