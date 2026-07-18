@@ -1,10 +1,11 @@
-# GrindSync — offline-first workout tracker
+# Solo Ranking — offline-first workout tracker
 
 Clean-room Android fitness app: RepCount-equivalent logging + nutrition +
 Solo-Leveling-style ranking. See [SPEC.md](SPEC.md) for the full spec and
 [nav-schematic.html](nav-schematic.html) for the wireframe.
+Package: `dev.gatsyuk.soloranking` (was GrindSync through v0.7.0).
 
-## Status: Phase 0 (skeleton + core schema)
+## Status: v1 feature-complete (all phases 0-5 shipped)
 
 - Single `:app` module; SPEC §4.2 boundaries kept as packages
   (`core/model`, `core/database`, `core/datastore`, `core/ui`, `core/di`,
