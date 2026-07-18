@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GrindSync"
+rootProject.name = "SoloRanking"
 include(":app")
