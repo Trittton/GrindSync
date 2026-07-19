@@ -1,6 +1,7 @@
 package dev.gatsyuk.soloranking.feature.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,12 +17,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -30,7 +30,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,8 +50,13 @@ import dev.gatsyuk.soloranking.core.model.WeightUnit
 import dev.gatsyuk.soloranking.core.model.Weights
 import dev.gatsyuk.soloranking.core.model.formatDurationMillis
 import dev.gatsyuk.soloranking.core.stats.StatsCalculator
-import dev.gatsyuk.soloranking.core.ui.rankColor
-import dev.gatsyuk.soloranking.core.ui.rankLabel
+import dev.gatsyuk.soloranking.core.ui.GlowProgressBar
+import dev.gatsyuk.soloranking.core.ui.PanelLabel
+import dev.gatsyuk.soloranking.core.ui.RankBadge
+import dev.gatsyuk.soloranking.core.ui.SectionHeader
+import dev.gatsyuk.soloranking.core.ui.StatTile
+import dev.gatsyuk.soloranking.core.ui.SystemPanel
+import dev.gatsyuk.soloranking.core.ui.theme.LocalSystemColors
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -131,28 +137,16 @@ fun ProfileScreen(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            item { RankHeroCard(game, onOpenMuscleRanks) }
-            item { StatSheetRow(game) }
-            item { StreakCard(game) }
-            item { AchievementsCard(game) }
+            item { RankHeroPanel(game, onOpenMuscleRanks) }
+            item { StatSheetPanel(game) }
+            item { StreakPanel(game) }
+            item { AchievementsPanel(game) }
 
-            item {
-                Text(
-                    "Statistics",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
-            }
-            item { TotalsCard(totals, unit) }
-            item { FrequencyCard(frequency) }
+            item { SectionHeader("Statistics") }
+            item { TotalsPanel(totals, unit) }
+            item { FrequencyPanel(frequency) }
 
-            item {
-                Text(
-                    "Exercise stats",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
-            }
+            item { SectionHeader("Exercises") }
             if (exercises.isEmpty()) {
                 item {
                     Text(
@@ -171,231 +165,220 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun RankHeroCard(game: RankEngine.GamificationState, onOpenMuscleRanks: () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val unranked = game.overallRank == null
-                val label = rankLabel(game.overallRank) // unranked renders as the E− floor
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(
-                            rankColor(game.overallRank ?: dev.gatsyuk.soloranking.core.model.Rank.E_MINUS)
-                                .copy(alpha = if (unranked) 0.45f else 1f),
-                            RoundedCornerShape(14.dp),
+private fun RankHeroPanel(game: RankEngine.GamificationState, onOpenMuscleRanks: () -> Unit) {
+    val sys = LocalSystemColors.current
+    SystemPanel(Modifier.fillMaxWidth(), glow = true, contentPadding = 16.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            RankBadge(game.overallRank, 72.dp)
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                PanelLabel("Overall rank")
+                Spacer(Modifier.height(2.dp))
+                if (game.glPoints != null) {
+                    Text(
+                        "%.1f".format(game.glPoints),
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Black,
+                            fontFeatureSettings = "tnum",
                         ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        label,
-                        fontSize = if (label.length > 2) 18.sp else 28.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White,
                     )
-                }
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("Overall rank", style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary)
                     Text(
-                        game.glPoints?.let { "IPF GL %.1f".format(it) }
-                            ?: "No data for ranking yet. Log squat, bench & deadlift " +
-                            "and set sex + bodyweight in Settings",
+                        "IPF GL points · squat + bench + deadlift",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Text(
+                        "No data for ranking yet. Log squat, bench & deadlift " +
+                            "and set sex + bodyweight in Settings.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-            Spacer(Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Level ${game.overallLevel.level}",
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                Spacer(Modifier.width(10.dp))
-                LinearProgressIndicator(
-                    progress = {
-                        if (game.overallLevel.xpForNext == 0) 0f
-                        else game.overallLevel.xpInto.toFloat() / game.overallLevel.xpForNext
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    "${game.overallLevel.xpInto}/${game.overallLevel.xpForNext} XP",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.height(10.dp))
-            Card(onClick = onOpenMuscleRanks, modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Rank Map: per-muscle ranks", style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f))
-                    Text("→", color = MaterialTheme.colorScheme.primary)
-                }
-            }
         }
-    }
-}
-
-@Composable
-private fun StatSheetRow(game: RankEngine.GamificationState) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
-            Row(Modifier.fillMaxWidth()) {
-                StatCell(
-                    "STR",
-                    game.statSheet.strengthGl?.let { "%.1f".format(it) } ?: "-",
-                    Modifier.weight(1f),
-                )
-                StatCell("END", game.statSheet.enduranceReps28d.toString(), Modifier.weight(1f))
-                StatCell("CON", "${game.statSheet.consistencyPct}%", Modifier.weight(1f))
-            }
+        Spacer(Modifier.height(16.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "STR = IPF GL points from your best squat/bench/deadlift · " +
-                    "END = working reps in the last 28 days · " +
-                    "CON = share of the last 8 weeks with 2+ sessions",
-                style = MaterialTheme.typography.labelSmall,
+                "LV. ${game.overallLevel.level}",
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.sp,
+                    fontFeatureSettings = "tnum",
+                ),
+            )
+            Spacer(Modifier.width(12.dp))
+            GlowProgressBar(
+                progress = if (game.overallLevel.xpForNext == 0) 0f
+                else game.overallLevel.xpInto.toFloat() / game.overallLevel.xpForNext,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                "${game.overallLevel.xpInto}/${game.overallLevel.xpForNext} XP",
+                style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
             )
         }
-    }
-}
-
-@Composable
-private fun StreakCard(game: RankEngine.GamificationState) {
-    Card(Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(12.dp)) {
-            StatCell("Week streak", "${game.currentStreakWeeks}", Modifier.weight(1f))
-            StatCell("Longest", "${game.longestStreakWeeks}", Modifier.weight(1f))
-            StatCell("Total PRs", "${game.totalPrCount}", Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-private fun AchievementsCard(game: RankEngine.GamificationState) {
-    val dateFormat = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH)
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                .clickable(onClick = onOpenMuscleRanks)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                "Achievements",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                "Rank Map — per-muscle ranks",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
             )
-            if (game.achievements.isEmpty()) {
-                Text(
-                    "None defined yet.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
-            }
-            game.achievements.forEach { achievement ->
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        if (achievement.unlockedOn != null) "★" else "☆",
-                        color = if (achievement.unlockedOn != null) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(achievement.title, style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            achievement.unlockedOn?.let { "Unlocked ${it.format(dateFormat)}" }
-                                ?: achievement.description,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = sys.accent,
+            )
         }
     }
 }
 
 @Composable
-private fun TotalsCard(totals: StatsCalculator.TotalStats, unit: WeightUnit) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
-            Text(
-                "All time",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+private fun StatSheetPanel(game: RankEngine.GamificationState) {
+    SystemPanel(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth()) {
+            StatTile(
+                "STR",
+                game.statSheet.strengthGl?.let { "%.1f".format(it) } ?: "—",
+                Modifier.weight(1f),
             )
-            Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                StatCell("Workouts", totals.workouts.toString(), Modifier.weight(1f))
-                StatCell("Duration", formatDurationMillis(totals.totalDurationMillis), Modifier.weight(1f))
-            }
-            Row(Modifier.fillMaxWidth().padding(top = 10.dp)) {
-                StatCell(
-                    "Volume",
-                    "${Weights.formatKgAs(totals.totalVolumeKg, unit)} ${Weights.unitLabel(unit)}",
-                    Modifier.weight(1f),
-                )
-                StatCell("Sets / Reps", "${totals.totalSets} / ${totals.totalReps}", Modifier.weight(1f))
-            }
+            StatTile("END", game.statSheet.enduranceReps28d.toString(), Modifier.weight(1f))
+            StatTile("CON", "${game.statSheet.consistencyPct}%", Modifier.weight(1f))
         }
-    }
-}
-
-@Composable
-private fun StatCell(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier) {
-        Text(value, style = MaterialTheme.typography.titleMedium)
         Text(
-            label,
+            "STR = IPF GL points from your best squat/bench/deadlift · " +
+                "END = working reps in the last 28 days · " +
+                "CON = share of the last 8 weeks with 2+ sessions",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 10.dp),
         )
     }
 }
 
 @Composable
-private fun FrequencyCard(weekCounts: List<Int>) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
+private fun StreakPanel(game: RankEngine.GamificationState) {
+    SystemPanel(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth()) {
+            StatTile("Week streak", "${game.currentStreakWeeks}", Modifier.weight(1f))
+            StatTile("Longest", "${game.longestStreakWeeks}", Modifier.weight(1f))
+            StatTile("Total PRs", "${game.totalPrCount}", Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun AchievementsPanel(game: RankEngine.GamificationState) {
+    val dateFormat = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH)
+    SystemPanel(Modifier.fillMaxWidth()) {
+        PanelLabel("Achievements")
+        if (game.achievements.isEmpty()) {
             Text(
-                "Workouts per week — last ${weekCounts.size} weeks",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                "None defined yet.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp),
             )
-            val max = (weekCounts.maxOrNull() ?: 0).coerceAtLeast(1)
+        }
+        game.achievements.forEach { achievement ->
             Row(
-                Modifier.fillMaxWidth().padding(top = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                weekCounts.forEach { count ->
-                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        // Fixed-height bar area + separate label row: no overlap.
+                Text(
+                    if (achievement.unlockedOn != null) "★" else "☆",
+                    color = if (achievement.unlockedOn != null) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(achievement.title, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        achievement.unlockedOn?.let { "Unlocked ${it.format(dateFormat)}" }
+                            ?: achievement.description,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TotalsPanel(totals: StatsCalculator.TotalStats, unit: WeightUnit) {
+    SystemPanel(Modifier.fillMaxWidth()) {
+        PanelLabel("All time")
+        Row(Modifier.fillMaxWidth().padding(top = 10.dp)) {
+            StatTile("Workouts", totals.workouts.toString(), Modifier.weight(1f))
+            StatTile("Duration", formatDurationMillis(totals.totalDurationMillis), Modifier.weight(1f))
+        }
+        Row(Modifier.fillMaxWidth().padding(top = 12.dp)) {
+            StatTile(
+                "Volume",
+                "${Weights.formatKgAs(totals.totalVolumeKg, unit)} ${Weights.unitLabel(unit)}",
+                Modifier.weight(1f),
+            )
+            StatTile("Sets / Reps", "${totals.totalSets} / ${totals.totalReps}", Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun FrequencyPanel(weekCounts: List<Int>) {
+    val sys = LocalSystemColors.current
+    SystemPanel(Modifier.fillMaxWidth()) {
+        PanelLabel("Workouts per week — last ${weekCounts.size} weeks")
+        val max = (weekCounts.maxOrNull() ?: 0).coerceAtLeast(1)
+        Row(
+            Modifier.fillMaxWidth().padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            weekCounts.forEach { count ->
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Fixed-height bar area + separate label row: no overlap.
+                    Box(
+                        Modifier.height(44.dp).width(18.dp),
+                        contentAlignment = Alignment.BottomCenter,
+                    ) {
                         Box(
-                            Modifier.height(44.dp).width(18.dp),
-                            contentAlignment = Alignment.BottomCenter,
-                        ) {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(((40 * count / max).coerceAtLeast(2)).dp)
-                                    .background(
-                                        if (count > 0) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.surfaceVariant,
-                                        RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp),
-                                    ),
-                            )
-                        }
-                        Text(
-                            count.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 2.dp),
+                            Modifier
+                                .fillMaxWidth()
+                                .height(((40 * count / max).coerceAtLeast(2)).dp)
+                                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                .background(
+                                    if (count > 0) {
+                                        Brush.verticalGradient(
+                                            listOf(sys.accent, sys.accent.copy(alpha = 0.45f)),
+                                        )
+                                    } else {
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                MaterialTheme.colorScheme.surfaceVariant,
+                                                MaterialTheme.colorScheme.surfaceVariant,
+                                            ),
+                                        )
+                                    },
+                                ),
                         )
                     }
+                    Text(
+                        count.toString(),
+                        style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
                 }
             }
         }
@@ -409,34 +392,33 @@ private fun ExerciseStatRow(
     onClick: () -> Unit,
 ) {
     val dateFormat = DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH)
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(entry.exerciseName, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "${entry.setCount} sets · last ${entry.lastDate.format(dateFormat)}" +
-                        (standing?.let { " · Lv ${it.level.level}" } ?: ""),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (standing?.rank != null) {
-                Box(
-                    modifier = Modifier
-                        .background(rankColor(standing.rank), RoundedCornerShape(7.dp))
-                        .padding(horizontal = 7.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        rankLabel(standing.rank),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
-            }
-            Text("→", color = MaterialTheme.colorScheme.primary)
+    val sys = LocalSystemColors.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(sys.panelFill)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(entry.exerciseName, style = MaterialTheme.typography.titleSmall)
+            Text(
+                "${entry.setCount} sets · last ${entry.lastDate.format(dateFormat)}" +
+                    (standing?.let { " · Lv ${it.level.level}" } ?: ""),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
+        if (standing?.rank != null) {
+            RankBadge(standing.rank, 34.dp)
+            Spacer(Modifier.width(10.dp))
+        }
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

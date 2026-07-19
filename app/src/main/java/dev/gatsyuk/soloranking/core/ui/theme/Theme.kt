@@ -6,28 +6,85 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import dev.gatsyuk.soloranking.core.model.ThemeMode
 
-// Dark-first palette (SPEC §6.8), single accent, mirrors nav-schematic.html.
-private val AccentDark = Color(0xFF4DB3FF)
+// "System window" art direction (Solo Leveling): deep blue-black canvas, one
+// electric-blue signature accent + violet partner used ONLY in gradients/glows.
+// Dark-first (SPEC §6.8); light mode is the same structure without the glow.
+private val AccentDark = Color(0xFF4DA8FF)
+private val VioletDark = Color(0xFF8B7CFF)
 private val AccentLight = Color(0xFF1F78E0)
+private val VioletLight = Color(0xFF6C5CE7)
+
+/**
+ * Colors that Material's [androidx.compose.material3.ColorScheme] has no slot
+ * for: the panel treatment (gradient border + fill) and the glow intensity.
+ * Consumed by SystemPanel / RankBadge / GlowProgressBar in core/ui.
+ */
+@Immutable
+data class SystemColors(
+    val accent: Color,
+    val accentAlt: Color,
+    val panelFill: Color,
+    val panelBorderTop: Color,
+    val panelBorderBottom: Color,
+    /** 0f disables the radial top-glow (light theme). */
+    val glowAlpha: Float,
+)
+
+val LocalSystemColors = staticCompositionLocalOf {
+    DarkSystemColors // sane default; SoloRankingTheme always provides one
+}
+
+private val DarkSystemColors = SystemColors(
+    accent = AccentDark,
+    accentAlt = VioletDark,
+    panelFill = Color(0xFF0F1624),
+    panelBorderTop = Color(0x804DA8FF),
+    panelBorderBottom = Color(0x268B7CFF),
+    glowAlpha = 0.10f,
+)
+
+private val LightSystemColors = SystemColors(
+    accent = AccentLight,
+    accentAlt = VioletLight,
+    panelFill = Color.White,
+    panelBorderTop = Color(0x4D1F78E0),
+    panelBorderBottom = Color(0x1A6C5CE7),
+    glowAlpha = 0f,
+)
 
 private val DarkColors = darkColorScheme(
     primary = AccentDark,
     onPrimary = Color(0xFF06263D),
-    primaryContainer = Color(0xFF122636),
+    primaryContainer = Color(0xFF12263F),
     onPrimaryContainer = Color(0xFFBFE0FF),
-    background = Color(0xFF0B0E13),
+    secondary = VioletDark,
+    onSecondary = Color(0xFF1A1145),
+    secondaryContainer = Color(0xFF241C4D),
+    onSecondaryContainer = Color(0xFFD9D2FF),
+    background = Color(0xFF070B14),
     onBackground = Color(0xFFE8EDF4),
-    surface = Color(0xFF141A23),
+    surface = Color(0xFF0F1624),
     onSurface = Color(0xFFE8EDF4),
-    surfaceVariant = Color(0xFF1B222D),
-    onSurfaceVariant = Color(0xFFA9B3C4),
+    surfaceVariant = Color(0xFF182338),
+    onSurfaceVariant = Color(0xFFA3AFC6),
     // Bright enough to read as an input border on dark cards (user feedback).
-    outline = Color(0xFF4E5A6B),
-    outlineVariant = Color(0xFF39424F),
+    outline = Color(0xFF4E5A73),
+    outlineVariant = Color(0xFF2C3A54),
+    // Container family drives NavigationBar / elevated surfaces — keep the blue cast.
+    surfaceContainerLowest = Color(0xFF070B12),
+    surfaceContainerLow = Color(0xFF0B1119),
+    surfaceContainer = Color(0xFF0D1420),
+    surfaceContainerHigh = Color(0xFF121B2C),
+    surfaceContainerHighest = Color(0xFF16213A),
+    surfaceDim = Color(0xFF070B14),
+    surfaceBright = Color(0xFF1C2942),
 )
 
 private val LightColors = lightColorScheme(
@@ -35,6 +92,10 @@ private val LightColors = lightColorScheme(
     onPrimary = Color.White,
     primaryContainer = Color(0xFFDCEBFB),
     onPrimaryContainer = Color(0xFF0B4F97),
+    secondary = VioletLight,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFE6E1FB),
+    onSecondaryContainer = Color(0xFF2F2478),
     background = Color(0xFFE9EDF3),
     onBackground = Color(0xFF131922),
     surface = Color.White,
@@ -62,9 +123,13 @@ fun SoloRankingTheme(themeMode: ThemeMode, content: @Composable () -> Unit) {
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    MaterialTheme(
-        colorScheme = if (dark) DarkColors else LightColors,
-        typography = AppTypography,
-        content = content,
-    )
+    CompositionLocalProvider(
+        LocalSystemColors provides if (dark) DarkSystemColors else LightSystemColors,
+    ) {
+        MaterialTheme(
+            colorScheme = if (dark) DarkColors else LightColors,
+            typography = AppTypography,
+            content = content,
+        )
+    }
 }
